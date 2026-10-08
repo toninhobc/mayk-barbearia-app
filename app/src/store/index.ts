@@ -18,6 +18,9 @@ export type Appointment = {
   clientName: string;
 };
 
+/** Ano é opcional: o benefício vale para o mês. */
+export type Birthday = { day: number; month: number; year?: number };
+
 type Draft = {
   serviceIds: string[];
   barberId: string | null; // null = sem preferência
@@ -33,6 +36,9 @@ type State = {
   draft: Draft;
   points: number;
   favorites: string[];
+  birthday: Birthday | null;
+  notifications: boolean;
+  savedCard: string | null; // últimos 4 dígitos
   login: () => void;
   logout: () => void;
   toggleService: (id: string) => void;
@@ -44,6 +50,9 @@ type State = {
   confirm: (method: PayMethod) => Appointment;
   cancel: (id: string) => void;
   toggleFavorite: (barberId: string) => void;
+  setBirthday: (b: Birthday | null) => void;
+  toggleNotifications: () => void;
+  removeCard: () => void;
 };
 
 /** Atendimentos necessários para ganhar um corte grátis. */
@@ -92,6 +101,9 @@ export const useStore = create<State>((set, get) => ({
   draft: emptyDraft,
   points: 7,
   favorites: ['b5'],
+  birthday: null,
+  notifications: true,
+  savedCard: '4242',
   login: () => set({ loggedIn: true }),
   logout: () => set({ loggedIn: false, draft: emptyDraft }),
   toggleService: (id) =>
@@ -147,4 +159,7 @@ export const useStore = create<State>((set, get) => ({
     set(({ favorites }) => ({
       favorites: favorites.includes(id) ? favorites.filter((x) => x !== id) : [...favorites, id],
     })),
+  setBirthday: (birthday) => set({ birthday }),
+  toggleNotifications: () => set(({ notifications }) => ({ notifications: !notifications })),
+  removeCard: () => set({ savedCard: null }),
 }));
