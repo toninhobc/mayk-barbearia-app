@@ -2,20 +2,87 @@ import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { CardForm, cardBrand, cardError, emptyCard, type CardInput } from '@/components/card-form';
 import { barberOf } from '@/components/cards';
 import { Footer, GoldButton, Header, Kicker, T, type IconName } from '@/components/ui';
 import { brl, dateLong, hhmm } from '@/lib/format';
-import { draftTotals, useStore, type PayMethod } from '@/store';
-import { colors, radius, space } from '@/theme';
+import { draftTotals, useStore, withCoupon, type PayMethod } from '@/store';
+import { colors, fonts, radius, space } from '@/theme';
 
 const methods: { id: PayMethod; title: string; sub: string; icon: IconName; tag?: string }[] = [
   { id: 'pix', title: 'Pix', sub: 'Aprovação na hora', icon: 'zap', tag: 'Recomendado' },
   { id: 'cartao', title: 'Cartão de crédito', sub: '', icon: 'credit-card' }, // texto vem do cartão salvo
   { id: 'local', title: 'Pagar na barbearia', sub: 'Dinheiro, Pix ou cartão no balcão', icon: 'home' },
 ];
+
+/** Campo de cupom: aplica, mostra erro ou o cupom ativo com opção de remover. */
+function Coupon() {
+  const { draft, applyCoupon, removeCoupon } = useStore();
+  const [text, setText] = useState('');
+  const [error, setError] = useState(false);
+
+  if (draft.coupon) {
+    return (
+      <View style={[s.coupon, s.couponOn]}>
+        <Feather name="tag" size={17} color={colors.success} />
+        <View style={{ flex: 1 }}>
+          <T v="semibold" size={14}>
+            {draft.coupon}
+          </T>
+          <T size={12} color={colors.success}>
+            {withCoupon(0, draft.coupon).pct}% de desconto aplicado
+          </T>
+        </View>
+        <Pressable onPress={removeCoupon} hitSlop={8}>
+          <T v="semibold" size={13} color={colors.muted}>
+            Remover
+          </T>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const apply = () => {
+    if (!text.trim()) return;
+    const ok = applyCoupon(text);
+    setError(!ok);
+    if (ok) setText('');
+  };
+
+  return (
+    <>
+      <View style={[s.coupon, error && { borderColor: colors.danger }]}>
+        <Feather name="tag" size={17} color={colors.gold} />
+        <TextInput
+          value={text}
+          onChangeText={(t) => {
+            setText(t.toUpperCase());
+            setError(false);
+          }}
+          onSubmitEditing={apply}
+          placeholder="Código do cupom"
+          placeholderTextColor={colors.dim}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          returnKeyType="done"
+          style={s.couponInput}
+        />
+        <Pressable onPress={apply} disabled={!text.trim()} hitSlop={8}>
+          <T v="semibold" size={14} color={text.trim() ? colors.gold : colors.dim}>
+            Aplicar
+          </T>
+        </Pressable>
+      </View>
+      {error && (
+        <T size={12} color={colors.danger} style={{ marginTop: 8, marginLeft: 4 }}>
+          Cupom inválido.
+        </T>
+      )}
+    </>
+  );
+}
 
 /** QR Code ilustrativo (na versão real vem do Mercado Pago). */
 function FakeQR({ size = 180 }: { size?: number }) {
@@ -64,6 +131,7 @@ export default function Pagamento() {
   const [busy, setBusy] = useState(false);
   const [secs, setSecs] = useState(600);
   const totals = draftTotals(draft.serviceIds);
+  const price = withCoupon(totals.cents, draft.coupon);
   const barber = draft.barberId ? barberOf(draft.barberId) : null;
   const pixCode = '00020126580014BR.GOV.BCB.PIX0136mayk-barbearia-demo5204000053039865802BR';
 
@@ -88,7 +156,7 @@ export default function Pagamento() {
     }, method === 'local' ? 300 : 1200);
   };
 
-  const cta = method === 'pix' ? 'Já fiz o Pix' : method === 'cartao' ? `Pagar ${brl(totals.cents)}` : 'Confirmar agendamento';
+  const cta = method === 'pix' ? 'Já fiz o Pix' : method === 'cartao' ? `Pagar ${brl(price.total)}` : 'Confirmar agendamento';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -114,15 +182,37 @@ export default function Pagamento() {
               </T>
             </View>
           ))}
+          {price.discount > 0 && (
+            <View style={s.line}>
+              <T size={14} color={colors.success}>
+                Cupom {draft.coupon} (−{price.pct}%)
+              </T>
+              <T size={14} color={colors.success}>
+                −{brl(price.discount)}
+              </T>
+            </View>
+          )}
           <View style={[s.line, { marginTop: 6 }]}>
             <T v="semibold" size={16}>
               Total
             </T>
-            <T v="semibold" size={16} color={colors.goldLight}>
-              {brl(totals.cents)}
-            </T>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+              {price.discount > 0 && (
+                <T size={13} color={colors.muted} style={{ textDecorationLine: 'line-through' }}>
+                  {brl(totals.cents)}
+                </T>
+              )}
+              <T v="semibold" size={16} color={colors.goldLight}>
+                {brl(price.total)}
+              </T>
+            </View>
           </View>
         </View>
+
+        <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
+          Tem um cupom?
+        </T>
+        <Coupon />
 
         <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
           Como você quer pagar?
@@ -230,6 +320,9 @@ const s = StyleSheet.create({
   pix: { marginTop: 6, padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   qrWrap: { padding: 12, backgroundColor: '#fff', borderRadius: 16 },
   copy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, alignSelf: 'stretch', padding: 14, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.gold },
+  coupon: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, paddingHorizontal: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  couponOn: { borderColor: 'rgba(95,191,138,0.45)', backgroundColor: 'rgba(95,191,138,0.06)' },
+  couponInput: { flex: 1, height: '100%', color: colors.text, fontFamily: fonts.semibold, fontSize: 15, letterSpacing: 1 },
   switchCard: { alignSelf: 'flex-start', marginTop: -2, marginBottom: 12, marginLeft: 4 },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, marginBottom: 8 },
   busy: { flex: 1, height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },

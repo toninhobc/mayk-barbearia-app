@@ -5,6 +5,8 @@ export type Service = {
   priceCents: number;
   minutes: number;
   description: string;
+  /** Combos: serviços que já estão incluídos (não podem ser marcados junto). */
+  includes?: string[];
 };
 
 export type Barber = {
@@ -21,10 +23,10 @@ export type Barber = {
 export const services: Service[] = [
   { id: 's1', name: 'Corte', category: 'Cabelo', priceCents: 4500, minutes: 40, description: 'Corte na tesoura ou máquina, finalização inclusa.' },
   { id: 's2', name: 'Barba', category: 'Barba', priceCents: 3500, minutes: 30, description: 'Toalha quente, navalha e hidratação.' },
-  { id: 's3', name: 'Corte + Barba', category: 'Combos', priceCents: 7500, minutes: 70, description: 'O combo completo com desconto.' },
-  { id: 's4', name: 'Barba + Barba Terapia', category: 'Combos', priceCents: 6000, minutes: 50, description: 'Barba com tratamento relaxante.' },
+  { id: 's3', name: 'Corte + Barba', category: 'Combos', priceCents: 7500, minutes: 70, description: 'O combo completo com desconto.', includes: ['s1', 's2'] },
+  { id: 's4', name: 'Barba + Barba Terapia', category: 'Combos', priceCents: 6000, minutes: 50, description: 'Barba com tratamento relaxante.', includes: ['s2'] },
   { id: 's5', name: 'Pigmentação de barba', category: 'Estética', priceCents: 4000, minutes: 30, description: 'Preenche falhas e realça o contorno.' },
-  { id: 's6', name: 'Barba + Pigmentação', category: 'Combos', priceCents: 7000, minutes: 60, description: 'Barba feita e pigmentada.' },
+  { id: 's6', name: 'Barba + Pigmentação', category: 'Combos', priceCents: 7000, minutes: 60, description: 'Barba feita e pigmentada.', includes: ['s2', 's5'] },
   { id: 's7', name: 'Sobrancelha', category: 'Estética', priceCents: 1500, minutes: 15, description: 'Design na navalha.' },
 ];
 
@@ -36,6 +38,12 @@ export const barbers: Barber[] = [
   { id: 'b5', name: 'Luiz Felipe Oliveira Silva', short: 'Luiz Felipe', rating: 5.0, reviews: 245, specialties: ['Corte clássico', 'Tesoura'], bio: 'O queridinho da casa.', color: '#7A4A2B' },
   { id: 'b6', name: 'Mayckson Vilar Azevedo', short: 'Mayckson', rating: 4.9, reviews: 300, specialties: ['Todos os estilos'], bio: 'Fundador da Mayk Barbearia.', color: '#2B1F18' },
 ];
+
+/** Código de indicação do cliente; também vale como cupom de desconto. */
+export const REFERRAL_CODE = 'ANTONIO10';
+
+/** Cupons aceitos no pagamento: código → % de desconto. */
+export const coupons: Record<string, number> = { [REFERRAL_CODE]: 10 };
 
 export const shop = {
   name: 'Mayk Barbearia',

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { barbers, services } from '@/data/mock';
+import { barbers, coupons, services } from '@/data/mock';
 import { pickBarber } from '@/lib/availability';
 
 export type Status = 'agendado' | 'concluido' | 'cancelado';
@@ -30,6 +30,7 @@ type Draft = {
   day: string | null; // ISO (meia-noite)
   slot: number | null; // minutos desde 00:00
   rescheduleId: string | null; // agendamento sendo remarcado
+  coupon: string | null; // código já validado
 };
 
 type State = {
@@ -45,6 +46,9 @@ type State = {
   login: () => void;
   logout: () => void;
   toggleService: (id: string) => void;
+  /** Aplica o cupom se for válido; retorna se deu certo. */
+  applyCoupon: (code: string) => boolean;
+  removeCoupon: () => void;
   setBarber: (id: string | null) => void;
   setDay: (iso: string) => void;
   setSlot: (m: number) => void;
@@ -63,7 +67,7 @@ type State = {
 export const LOYALTY_GOAL = 10;
 
 const ME = 'Antonio Barros Coelho';
-const emptyDraft: Draft = { serviceIds: [], barberId: null, day: null, slot: null, rescheduleId: null };
+const emptyDraft: Draft = { serviceIds: [], barberId: null, day: null, slot: null, rescheduleId: null, coupon: null };
 
 const at = (daysFromNow: number, hour: number, min = 0) => {
   const d = new Date();
@@ -95,6 +99,17 @@ export const draftTotals = (serviceIds: string[]) => {
   };
 };
 
+/** Desconto do cupom (arredondado para centavos) e valor final. */
+export const withCoupon = (cents: number, coupon: string | null) => {
+  const pct = coupon ? (coupons[coupon] ?? 0) : 0;
+  const discount = Math.round((cents * pct) / 100);
+  return { pct, discount, total: cents - discount };
+};
+
+/** O que um serviço cobre: um combo cobre seus itens; um serviço avulso, ele mesmo. */
+const parts = (id: string) => services.find((s) => s.id === id)?.includes ?? [id];
+const overlaps = (a: string, b: string) => parts(a).some((p) => parts(b).includes(p));
+
 /** Agendamentos do próprio cliente. */
 export const mine = (appts: Appointment[]) => appts.filter((a) => a.clientName === ME);
 
@@ -115,11 +130,19 @@ export const useStore = create<State>((set, get) => ({
       draft: {
         ...draft,
         slot: null,
+        // marcar um serviço desmarca os que se sobrepõem a ele (ex.: Corte + Barba substitui Corte e Barba)
         serviceIds: draft.serviceIds.includes(id)
           ? draft.serviceIds.filter((x) => x !== id)
-          : [...draft.serviceIds, id],
+          : [...draft.serviceIds.filter((x) => !overlaps(x, id)), id],
       },
     })),
+  applyCoupon: (code) => {
+    const c = code.trim().toUpperCase();
+    if (!(c in coupons)) return false;
+    set(({ draft }) => ({ draft: { ...draft, coupon: c } }));
+    return true;
+  },
+  removeCoupon: () => set(({ draft }) => ({ draft: { ...draft, coupon: null } })),
   setBarber: (barberId) => set(({ draft }) => ({ draft: { ...draft, barberId, slot: null } })),
   setDay: (day) => set(({ draft }) => ({ draft: { ...draft, day, slot: null } })),
   setSlot: (slot) => set(({ draft }) => ({ draft: { ...draft, slot } })),
@@ -143,7 +166,7 @@ export const useStore = create<State>((set, get) => ({
       barberId,
       start: start.toISOString(),
       minutes,
-      totalCents: cents,
+      totalCents: withCoupon(cents, draft.coupon).total,
       status: 'agendado',
       paid: old ? old.paid : method !== 'local',
       method: old ? old.method : method,
