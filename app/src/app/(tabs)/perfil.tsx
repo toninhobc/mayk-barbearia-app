@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BirthdaySheet } from '@/components/birthday-sheet';
+import { PhotoSheet } from '@/components/photo-sheet';
+import { UserAvatar } from '@/components/user-avatar';
 import { barberOf } from '@/components/cards';
 import { Sheet } from '@/components/sheet';
 import { OutlineButton, SectionHeader, T, type IconName } from '@/components/ui';
@@ -52,7 +54,7 @@ function Row({ icon, label, value, onPress, danger }: { icon: IconName; label: s
 export default function Perfil() {
   const { top } = useSafeAreaInsets();
   const { me, appointments, points, logout, birthday, notifications, toggleNotifications, savedCard, removeCard } = useStore();
-  const [sheet, setSheet] = useState<'birthday' | 'cards' | null>(null);
+  const [sheet, setSheet] = useState<'birthday' | 'cards' | 'photo' | null>(null);
   const all = mine(appointments);
   const paid = all.filter((a) => a.paid && a.status !== 'cancelado').sort((a, b) => +new Date(b.start) - +new Date(a.start));
   const done = all.filter((a) => a.status === 'concluido');
@@ -61,11 +63,12 @@ export default function Perfil() {
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
       <View style={{ alignItems: 'center' }}>
-        <View style={s.avatar}>
-          <T v="serif" size={36} color={colors.goldLight}>
-            {me.name[0]}
-          </T>
-        </View>
+        <Pressable onPress={() => setSheet('photo')} accessibilityLabel="Trocar foto de perfil" style={({ pressed }) => pressed && { opacity: 0.8 }}>
+          <UserAvatar size={88} ring />
+          <View style={s.camera}>
+            <Feather name="camera" size={14} color={colors.onGold} />
+          </View>
+        </Pressable>
         <T v="serif" size={26} style={{ marginTop: 14 }}>
           {me.name}
         </T>
@@ -150,6 +153,7 @@ export default function Perfil() {
       </View>
 
       <BirthdaySheet visible={sheet === 'birthday'} onClose={() => setSheet(null)} />
+      <PhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
       <Sheet visible={sheet === 'cards'} onClose={() => setSheet(null)} title="Cartões salvos">
         {savedCard ? (
           <>
@@ -177,7 +181,7 @@ export default function Perfil() {
 }
 
 const s = StyleSheet.create({
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  camera: { position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.gold, borderWidth: 3, borderColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   stats: { flexDirection: 'row', marginTop: 22, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, paddingVertical: 16 },
   stat: { flex: 1, alignItems: 'center' },
   group: { borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },

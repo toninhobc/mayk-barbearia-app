@@ -29,6 +29,13 @@
       "expo-router",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "A Mayk Barbearia usa suas fotos para você escolher a foto do seu perfil.",
+          "cameraPermission": "A Mayk Barbearia usa a câmera para você tirar a foto do seu perfil."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#000000",
