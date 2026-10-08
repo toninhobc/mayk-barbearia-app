@@ -77,6 +77,8 @@ type State = {
   removeCard: () => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
+  removeNotice: (id: string) => void;
+  restoreNotice: (n: Notice) => void;
 };
 
 /** Atendimentos necessários para ganhar um corte grátis. */
@@ -241,4 +243,6 @@ export const useStore = create<State>((set, get) => ({
   removeCard: () => set({ savedCard: null }),
   markRead: (id) => set(({ inbox }) => ({ inbox: inbox.map((n) => (n.id === id ? { ...n, read: true } : n)) })),
   markAllRead: () => set(({ inbox }) => ({ inbox: inbox.map((n) => ({ ...n, read: true })) })),
+  removeNotice: (id) => set(({ inbox }) => ({ inbox: inbox.filter((n) => n.id !== id) })),
+  restoreNotice: (n) => set(({ inbox }) => ({ inbox: inbox.some((x) => x.id === n.id) ? inbox : [...inbox, n] })),
 }));
