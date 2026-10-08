@@ -4,16 +4,16 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { ServiceRow } from '@/components/cards';
 import { Chip, Footer, GoldButton, Header, T } from '@/components/ui';
-import { services } from '@/data/mock';
+import { categories, services } from '@/data/mock';
 import { brl } from '@/lib/format';
 import { draftTotals, useStore } from '@/store';
 import { colors, fonts, radius, space } from '@/theme';
 
-const categories = ['Todos', 'Cabelo', 'Barba', 'Combos', 'Estética'] as const;
+const filters = ['Todos', ...categories] as const;
 
 export default function Servicos() {
   const { draft, toggleService } = useStore();
-  const [cat, setCat] = useState<(typeof categories)[number]>('Todos');
+  const [cat, setCat] = useState<(typeof filters)[number]>('Todos');
   const [q, setQ] = useState('');
   const totals = draftTotals(draft.serviceIds);
 
@@ -36,14 +36,26 @@ export default function Servicos() {
           <TextInput value={q} onChangeText={setQ} placeholder="Buscar serviço..." placeholderTextColor={colors.dim} style={s.input} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
-          {categories.map((c) => (
+          {filters.map((c) => (
             <Chip key={c} label={c} active={cat === c} onPress={() => setCat(c)} />
           ))}
         </ScrollView>
       </View>
       <ScrollView contentContainerStyle={{ padding: space.gutter }}>
-        {list.map((sv) => (
-          <ServiceRow key={sv.id} sv={sv} on={draft.serviceIds.includes(sv.id)} onPress={() => toggleService(sv.id)} />
+        {/* em "Todos" sem busca, agrupa por categoria como no app da barbearia */}
+        {(cat === 'Todos' && !q.trim() ? categories : [null]).map((c) => (
+          <View key={c ?? 'lista'}>
+            {c && (
+              <T v="semibold" size={13} color={colors.gold} style={s.group}>
+                {c.toUpperCase()}
+              </T>
+            )}
+            {list
+              .filter((sv) => !c || sv.category === c)
+              .map((sv) => (
+                <ServiceRow key={sv.id} sv={sv} on={draft.serviceIds.includes(sv.id)} onPress={() => toggleService(sv.id)} />
+              ))}
+          </View>
         ))}
         {list.length === 0 && (
           <T color={colors.muted} style={{ textAlign: 'center', marginTop: 30 }}>
@@ -68,5 +80,6 @@ export default function Servicos() {
 
 const s = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 50, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 18 },
+  group: { letterSpacing: 1.6, marginTop: 8, marginBottom: 10 },
   input: { flex: 1, color: colors.text, fontFamily: fonts.regular, fontSize: 14 },
 });

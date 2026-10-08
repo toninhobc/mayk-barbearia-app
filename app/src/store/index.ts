@@ -78,16 +78,16 @@ const at = (daysFromNow: number, hour: number, min = 0) => {
 
 const seed: Appointment[] = [
   // do cliente
-  { id: 'a0', serviceIds: ['s3'], barberId: 'b5', start: at(2, 15, 30), minutes: 70, totalCents: 7500, status: 'agendado', paid: true, method: 'pix', clientName: ME },
-  { id: 'a1', serviceIds: ['s1'], barberId: 'b5', start: at(-14, 15), minutes: 40, totalCents: 4500, status: 'concluido', paid: true, method: 'pix', clientName: ME },
-  { id: 'a2', serviceIds: ['s3'], barberId: 'b5', start: at(-45, 10), minutes: 70, totalCents: 7500, status: 'concluido', paid: true, method: 'cartao', clientName: ME },
-  { id: 'a5', serviceIds: ['s2'], barberId: 'b3', start: at(-80, 18), minutes: 30, totalCents: 3500, status: 'concluido', paid: true, method: 'local', clientName: ME },
+  { id: 'a0', serviceIds: ['s3'], barberId: 'b5', start: at(2, 15, 30), minutes: 70, totalCents: 14500, status: 'agendado', paid: true, method: 'pix', clientName: ME },
+  { id: 'a1', serviceIds: ['s1'], barberId: 'b5', start: at(-14, 15), minutes: 40, totalCents: 9000, status: 'concluido', paid: true, method: 'pix', clientName: ME },
+  { id: 'a2', serviceIds: ['s3'], barberId: 'b5', start: at(-45, 10), minutes: 70, totalCents: 14500, status: 'concluido', paid: true, method: 'cartao', clientName: ME },
+  { id: 'a5', serviceIds: ['s2'], barberId: 'b3', start: at(-80, 18), minutes: 30, totalCents: 7000, status: 'concluido', paid: true, method: 'local', clientName: ME },
   // de outros clientes (ocupam horários)
-  { id: 'o1', serviceIds: ['s1'], barberId: 'b5', start: at(1, 10), minutes: 40, totalCents: 4500, status: 'agendado', paid: false, method: 'local', clientName: 'Outro' },
-  { id: 'o2', serviceIds: ['s3'], barberId: 'b5', start: at(1, 14), minutes: 70, totalCents: 7500, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
-  { id: 'o3', serviceIds: ['s1'], barberId: 'b5', start: at(2, 9, 30), minutes: 40, totalCents: 4500, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
-  { id: 'o4', serviceIds: ['s1'], barberId: 'b5', start: at(2, 11), minutes: 40, totalCents: 4500, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
-  { id: 'o5', serviceIds: ['s2'], barberId: 'b1', start: at(1, 10), minutes: 30, totalCents: 3500, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
+  { id: 'o1', serviceIds: ['s1'], barberId: 'b5', start: at(1, 10), minutes: 40, totalCents: 9000, status: 'agendado', paid: false, method: 'local', clientName: 'Outro' },
+  { id: 'o2', serviceIds: ['s3'], barberId: 'b5', start: at(1, 14), minutes: 70, totalCents: 14500, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
+  { id: 'o3', serviceIds: ['s1'], barberId: 'b5', start: at(2, 9, 30), minutes: 40, totalCents: 9000, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
+  { id: 'o4', serviceIds: ['s1'], barberId: 'b5', start: at(2, 11), minutes: 40, totalCents: 9000, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
+  { id: 'o5', serviceIds: ['s2'], barberId: 'b1', start: at(1, 10), minutes: 30, totalCents: 7000, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
 ];
 
 export const draftTotals = (serviceIds: string[]) => {

@@ -1,7 +1,11 @@
+/** Mesmas categorias do app que a barbearia usa hoje. */
+export const categories = ['Barba', 'Cabelo', 'Estética', 'Tratamento capilar'] as const;
+export type Category = (typeof categories)[number];
+
 export type Service = {
   id: string;
   name: string;
-  category: 'Cabelo' | 'Barba' | 'Combos' | 'Estética';
+  category: Category;
   priceCents: number;
   minutes: number;
   description: string;
@@ -20,15 +24,40 @@ export type Barber = {
   color: string;
 };
 
+// Catálogo do app atual da barbearia. Corte = R$ 90; os demais preços e
+// durações são estimativas proporcionais, a confirmar com a barbearia.
 export const services: Service[] = [
-  { id: 's1', name: 'Corte', category: 'Cabelo', priceCents: 4500, minutes: 40, description: 'Corte na tesoura ou máquina, finalização inclusa.' },
-  { id: 's2', name: 'Barba', category: 'Barba', priceCents: 3500, minutes: 30, description: 'Toalha quente, navalha e hidratação.' },
-  { id: 's3', name: 'Corte + Barba', category: 'Combos', priceCents: 7500, minutes: 70, description: 'O combo completo com desconto.', includes: ['s1', 's2'] },
-  { id: 's4', name: 'Barba + Barba Terapia', category: 'Combos', priceCents: 6000, minutes: 50, description: 'Barba com tratamento relaxante.', includes: ['s2'] },
-  { id: 's5', name: 'Pigmentação de barba', category: 'Estética', priceCents: 4000, minutes: 30, description: 'Preenche falhas e realça o contorno.' },
-  { id: 's6', name: 'Barba + Pigmentação', category: 'Combos', priceCents: 7000, minutes: 60, description: 'Barba feita e pigmentada.', includes: ['s2', 's5'] },
-  { id: 's7', name: 'Sobrancelha', category: 'Estética', priceCents: 1500, minutes: 15, description: 'Design na navalha.' },
+  // Barba
+  { id: 's2', name: 'Barba', category: 'Barba', priceCents: 7000, minutes: 30, description: 'Toalha quente, navalha e hidratação.' },
+  { id: 's4', name: 'Barba + Barba terapia', category: 'Barba', priceCents: 11000, minutes: 50, description: 'Barba com tratamento relaxante.', includes: ['s2'] },
+  { id: 's6', name: 'Barba + Pigmentação', category: 'Barba', priceCents: 13000, minutes: 60, description: 'Barba feita e pigmentada.', includes: ['s2', 's5'] },
+  { id: 's5', name: 'Pigmentação de barba', category: 'Barba', priceCents: 8000, minutes: 30, description: 'Preenche falhas e realça o contorno.' },
+  // Cabelo
+  { id: 's8', name: 'Coloração / Tonalização', category: 'Cabelo', priceCents: 12000, minutes: 45, description: 'Cor uniforme ou cobertura de fios brancos.' },
+  { id: 's1', name: 'Corte', category: 'Cabelo', priceCents: 9000, minutes: 40, description: 'Corte na tesoura ou máquina, finalização inclusa.' },
+  { id: 's3', name: 'Corte + Barba', category: 'Cabelo', priceCents: 14500, minutes: 70, description: 'O combo completo com desconto.', includes: ['s1', 's2'] },
+  { id: 's9', name: 'Corte + Barba + Selagem', category: 'Cabelo', priceCents: 29000, minutes: 130, description: 'Combo completo com selagem dos fios.', includes: ['s1', 's2', 's11'] },
+  { id: 's10', name: 'Corte + Selagem', category: 'Cabelo', priceCents: 23000, minutes: 100, description: 'Corte e selagem com desconto.', includes: ['s1', 's11'] },
+  { id: 's12', name: 'Depilação com cera', category: 'Cabelo', priceCents: 5000, minutes: 15, description: 'Acabamento com cera quente.' },
+  { id: 's13', name: 'Lavagem relaxante', category: 'Cabelo', priceCents: 5000, minutes: 20, description: 'Lavagem com massagem no couro cabeludo.' },
+  { id: 's14', name: 'Penteado', category: 'Cabelo', priceCents: 5000, minutes: 20, description: 'Finalização com produto para a ocasião.' },
+  { id: 's15', name: 'Pezinho', category: 'Cabelo', priceCents: 4000, minutes: 15, description: 'Acabamento do contorno entre cortes.' },
+  { id: 's16', name: 'Relaxamento', category: 'Cabelo', priceCents: 14000, minutes: 60, description: 'Reduz o volume e solta os cachos.' },
+  { id: 's11', name: 'Selagem', category: 'Cabelo', priceCents: 16000, minutes: 60, description: 'Alinha os fios e tira o frizz.' },
+  // Estética
+  { id: 's17', name: 'Consultoria', category: 'Estética', priceCents: 6000, minutes: 30, description: 'Indicação de corte e cuidados para o seu rosto.' },
+  { id: 's18', name: 'Depilação de nariz', category: 'Estética', priceCents: 3000, minutes: 10, description: 'Remoção dos pelos com cera.' },
+  { id: 's19', name: 'Depilação de orelha', category: 'Estética', priceCents: 3000, minutes: 10, description: 'Remoção dos pelos com cera.' },
+  { id: 's7', name: 'Design de sobrancelha', category: 'Estética', priceCents: 3500, minutes: 15, description: 'Design na navalha.' },
+  // Tratamento capilar
+  { id: 's20', name: 'Hidratação', category: 'Tratamento capilar', priceCents: 8000, minutes: 30, description: 'Repõe a água dos fios.' },
+  { id: 's21', name: 'Nutrição', category: 'Tratamento capilar', priceCents: 10000, minutes: 30, description: 'Repõe óleos e dá brilho.' },
+  { id: 's22', name: 'Reconstrução', category: 'Tratamento capilar', priceCents: 12000, minutes: 40, description: 'Fortalece fios danificados.' },
+  { id: 's23', name: 'Tratamento Derma Peeling', category: 'Tratamento capilar', priceCents: 14000, minutes: 40, description: 'Esfoliação e limpeza do couro cabeludo.' },
 ];
+
+/** Destaques da tela Início. */
+export const popular = ['s1', 's3', 's2', 's7'];
 
 export const barbers: Barber[] = [
   { id: 'b1', name: 'André Mendonça Lima', short: 'André', rating: 4.9, reviews: 212, specialties: ['Degradê', 'Social'], bio: 'Especialista em cortes modernos.', color: '#8B5E3C' },
