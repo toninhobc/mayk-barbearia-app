@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Kicker, Logo, SectionHeader, T, type IconName } from '@/components/ui';
+import { REFERRAL_CODE, coupons } from '@/data/mock';
 import { monthName } from '@/lib/format';
 import { LOYALTY_GOAL as GOAL, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
@@ -20,7 +21,7 @@ export default function Fidelidade() {
   const points = useStore((s) => s.points);
   const birthday = useStore((s) => s.birthday);
   const [copied, setCopied] = useState(false);
-  const code = 'ANTONIO10';
+  const code = REFERRAL_CODE;
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
@@ -101,6 +102,9 @@ export default function Fidelidade() {
           </T>
         </View>
       </Pressable>
+      <T size={12} color={colors.muted} style={{ marginTop: 10 }}>
+        Use no pagamento e ganhe {coupons[REFERRAL_CODE]}% de desconto.
+      </T>
     </ScrollView>
   );
 }
