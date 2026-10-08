@@ -125,7 +125,7 @@ export default function Perfil() {
       <SectionHeader title="Conta" />
       <View style={s.group}>
         <Row icon="calendar" label="Data de aniversário" value={birthday ? birthdayLabel(birthday) : 'Cadastrar'} onPress={() => setSheet('birthday')} />
-        <Row icon="credit-card" label="Cartões salvos" value={savedCard ? `•••• ${savedCard}` : 'Nenhum'} onPress={() => setSheet('cards')} />
+        <Row icon="credit-card" label="Cartões salvos" value={savedCard ? `•••• ${savedCard.last4}` : 'Nenhum'} onPress={() => setSheet('cards')} />
         <Row icon={notifications ? 'bell' : 'bell-off'} label="Notificações" value={notifications ? 'Ativadas' : 'Desativadas'} onPress={toggleNotifications} />
       </View>
 
@@ -157,7 +157,7 @@ export default function Perfil() {
               <Feather name="credit-card" size={20} color={colors.gold} />
               <View style={{ flex: 1 }}>
                 <T v="semibold" size={15}>
-                  Mastercard •••• {savedCard}
+                  {savedCard.brand} •••• {savedCard.last4}
                 </T>
                 <T size={12} color={colors.muted} style={{ marginTop: 2 }}>
                   Usado no pagamento por cartão

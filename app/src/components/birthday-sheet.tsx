@@ -9,7 +9,8 @@ const digits = (t: string, max: number) => t.replace(/\D/g, '').slice(0, max);
 
 /** Retorna a data ou uma mensagem de erro (null = ainda incompleta). */
 function parse(d: string, m: string, y: string): Birthday | string | null {
-  if (!d || !m) return null;
+  // "0" sozinho é o começo de "05": ainda incompleto, não um erro
+  if (!d || !m || d === '0' || m === '0') return null;
   const day = +d;
   const month = +m;
   if (month < 1 || month > 12) return 'Mês inválido.';

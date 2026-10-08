@@ -18,6 +18,9 @@ export type Appointment = {
   clientName: string;
 };
 
+/** Cartão salvo: só bandeira e últimos 4 dígitos (o número completo fica no Mercado Pago). */
+export type SavedCard = { brand: string; last4: string };
+
 /** Ano é opcional: o benefício vale para o mês. */
 export type Birthday = { day: number; month: number; year?: number };
 
@@ -38,7 +41,7 @@ type State = {
   favorites: string[];
   birthday: Birthday | null;
   notifications: boolean;
-  savedCard: string | null; // últimos 4 dígitos
+  savedCard: SavedCard | null;
   login: () => void;
   logout: () => void;
   toggleService: (id: string) => void;
@@ -52,6 +55,7 @@ type State = {
   toggleFavorite: (barberId: string) => void;
   setBirthday: (b: Birthday | null) => void;
   toggleNotifications: () => void;
+  saveCard: (card: SavedCard) => void;
   removeCard: () => void;
 };
 
@@ -103,7 +107,7 @@ export const useStore = create<State>((set, get) => ({
   favorites: ['b5'],
   birthday: null,
   notifications: true,
-  savedCard: '4242',
+  savedCard: { brand: 'Mastercard', last4: '4242' },
   login: () => set({ loggedIn: true }),
   logout: () => set({ loggedIn: false, draft: emptyDraft }),
   toggleService: (id) =>
@@ -161,5 +165,6 @@ export const useStore = create<State>((set, get) => ({
     })),
   setBirthday: (birthday) => set({ birthday }),
   toggleNotifications: () => set(({ notifications }) => ({ notifications: !notifications })),
+  saveCard: (savedCard) => set({ savedCard }),
   removeCard: () => set({ savedCard: null }),
 }));
