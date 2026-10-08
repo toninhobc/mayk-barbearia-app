@@ -79,10 +79,10 @@ export function BarberCard({ b, selected, onPress, width = 104 }: { b: Barber; s
 /* ---------- Serviço (linha) ---------- */
 
 const icons: Record<Service['category'], keyof typeof MaterialCommunityIcons.glyphMap> = {
-  Cabelo: 'content-cut',
   Barba: 'razor-double-edge',
-  Combos: 'star-four-points-outline',
+  Cabelo: 'content-cut',
   Estética: 'face-man-shimmer-outline',
+  'Tratamento capilar': 'hair-dryer-outline',
 };
 
 export function ServiceRow({ sv, on, onPress }: { sv: Service; on?: boolean; onPress: () => void }) {
@@ -96,7 +96,7 @@ export function ServiceRow({ sv, on, onPress }: { sv: Service; on?: boolean; onP
           {sv.name}
         </T>
         <T size={12} color={colors.muted} style={{ marginTop: 2 }}>
-          {sv.minutes} min{sv.category === 'Combos' ? ' · combo' : ''}
+          {sv.minutes} min{sv.includes ? ' · combo' : ''}
         </T>
       </View>
       <T v="semibold" size={15}>

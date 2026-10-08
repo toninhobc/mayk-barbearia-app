@@ -4,7 +4,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarberCard, NextAppointmentCard, ServiceRow } from '@/components/cards';
 import { Chip, GoldButton, IconButton, SectionHeader, T } from '@/components/ui';
-import { barbers, services } from '@/data/mock';
+import { barbers, popular, services } from '@/data/mock';
 import { mine, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
 
@@ -111,7 +111,7 @@ export default function Inicio() {
           router.push('/servicos');
         }}
       />
-      {services.slice(0, 4).map((sv) => (
+      {services.filter((sv) => popular.includes(sv.id)).map((sv) => (
         <ServiceRow key={sv.id} sv={sv} on={draft.serviceIds.includes(sv.id)} onPress={() => addService(sv.id)} />
       ))}
 

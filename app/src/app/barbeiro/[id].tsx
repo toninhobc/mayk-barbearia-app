@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, Footer, GoldButton, IconButton, Logo, Photo, Stars, T } from '@/components/ui';
-import { barbers, reviews, services, shop } from '@/data/mock';
+import { barbers, categories, reviews, services, shop, type Category } from '@/data/mock';
 import { photos } from '@/data/photos';
 import { freeSlots } from '@/lib/availability';
 import { brl, hhmm, sameDay, weekdayShort } from '@/lib/format';
@@ -22,6 +22,8 @@ export default function BarberScreen() {
   const barber = barbers.find((b) => b.id === barberId);
   const { top } = useSafeAreaInsets();
   const { draft, appointments, favorites, setBarber, setDay, setSlot, toggleService, toggleFavorite, confirm } = useStore();
+  // abre na categoria do primeiro serviço já escolhido (ex.: vindo da tela Serviços)
+  const [cat, setCat] = useState<Category>(() => services.find((x) => x.id === draft.serviceIds[0])?.category ?? 'Cabelo');
   const [tab, setTab] = useState<(typeof tabs)[number]>('Agendar');
 
   useEffect(() => {
@@ -134,21 +136,34 @@ export default function BarberScreen() {
               <T v="semibold" size={14} style={s.label}>
                 Serviços
               </T>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
-                {services.map((sv) => (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter, marginBottom: 12 }} contentContainerStyle={{ gap: 20, paddingHorizontal: space.gutter, alignItems: 'flex-start' }}>
+                {categories.map((c) => {
+                  const n = draft.serviceIds.filter((id) => services.find((x) => x.id === id)?.category === c).length;
+                  return (
+                    <Pressable key={c} onPress={() => setCat(c)} hitSlop={6} style={[s.cat, cat === c && s.catOn]}>
+                      <T v={cat === c ? 'semibold' : 'medium'} size={13} color={cat === c ? colors.goldLight : colors.muted}>
+                        {c}
+                        {n ? ` · ${n}` : ''}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
+                {services.filter((sv) => sv.category === cat).map((sv) => (
                   <Chip key={sv.id} label={sv.name} active={draft.serviceIds.includes(sv.id)} onPress={() => toggleService(sv.id)} />
                 ))}
               </ScrollView>
 
               <View style={s.monthRow}>
-                <T v="semibold" size={14}>
+                <T v="semibold" size={14} numberOfLines={1} style={{ flexShrink: 0 }}>
                   {month.charAt(0).toUpperCase() + month.slice(1)}
                 </T>
                 <T size={13} color={colors.muted} numberOfLines={1} style={{ flexShrink: 1, marginLeft: 12 }}>
                   {totals.list.length ? `${totals.list.map((x) => x.name).join(' + ')} · ${totals.minutes} min` : 'Escolha um serviço'}
                 </T>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
                 {days.map((d) => {
                   const on = sameDay(d, day);
                   const closed = free(d).length === 0;
@@ -271,6 +286,8 @@ const s = StyleSheet.create({
   tabOn: { borderBottomWidth: 2, borderBottomColor: colors.gold, marginBottom: -1 },
   notice: { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: 'rgba(200,161,90,0.1)', borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
   label: { marginTop: 18, marginBottom: 12 },
+  cat: { paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  catOn: { borderBottomColor: colors.gold },
   monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 22, marginBottom: 12 },
   day: { width: 52, height: 70, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', gap: 4 },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
