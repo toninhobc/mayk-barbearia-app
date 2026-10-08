@@ -2,13 +2,29 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { barberOf } from '@/components/cards';
 import { SectionHeader, T, type IconName } from '@/components/ui';
 import { shop } from '@/data/mock';
 import { brl } from '@/lib/format';
-import { mine, useStore } from '@/store';
+import { LOYALTY_GOAL, mine, useStore, type Appointment } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 const methodName = { pix: 'Pix', cartao: 'Cartão', local: 'Na barbearia' } as const;
+
+/** Barbeiro com mais atendimentos concluídos (empate: o mais recente). */
+function favoriteBarber(done: Appointment[]): string | null {
+  const count = new Map<string, { n: number; last: number }>();
+  for (const a of done) {
+    const c = count.get(a.barberId) ?? { n: 0, last: 0 };
+    count.set(a.barberId, { n: c.n + 1, last: Math.max(c.last, +new Date(a.start)) });
+  }
+  let best: string | null = null;
+  for (const [id, c] of count) {
+    const b = best ? count.get(best)! : null;
+    if (!b || c.n > b.n || (c.n === b.n && c.last > b.last)) best = id;
+  }
+  return best;
+}
 
 function Row({ icon, label, value, onPress, danger }: { icon: IconName; label: string; value?: string; onPress?: () => void; danger?: boolean }) {
   return (
@@ -29,11 +45,11 @@ function Row({ icon, label, value, onPress, danger }: { icon: IconName; label: s
 
 export default function Perfil() {
   const { top } = useSafeAreaInsets();
-  const { me, appointments, logout } = useStore();
+  const { me, appointments, points, logout } = useStore();
   const all = mine(appointments);
   const paid = all.filter((a) => a.paid && a.status !== 'cancelado').sort((a, b) => +new Date(b.start) - +new Date(a.start));
-  const visits = all.filter((a) => a.status === 'concluido').length;
-  const spent = all.filter((a) => a.status === 'concluido').reduce((t, a) => t + a.totalCents, 0);
+  const done = all.filter((a) => a.status === 'concluido');
+  const favorite = favoriteBarber(done);
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
@@ -53,18 +69,25 @@ export default function Perfil() {
 
       <View style={s.stats}>
         {[
-          { v: String(visits), l: 'Visitas' },
-          { v: brl(spent).replace(',00', ''), l: 'Investido' },
-          { v: 'Luiz F.', l: 'Favorito' },
+          { v: String(done.length), l: 'Visitas' },
+          { v: `${points}/${LOYALTY_GOAL}`, l: 'Pontos', onPress: () => router.navigate('/fidelidade') },
+          { v: favorite ? barberOf(favorite).short : '—', l: 'Favorito' },
         ].map((x, i) => (
-          <View key={x.l} style={[s.stat, i > 0 && { borderLeftWidth: 1, borderLeftColor: colors.line }]}>
-            <T v="serif" size={20} color={colors.goldLight}>
+          <Pressable
+            key={x.l}
+            disabled={!x.onPress}
+            onPress={x.onPress}
+            style={[s.stat, i > 0 && { borderLeftWidth: 1, borderLeftColor: colors.line }]}>
+            <T v="serif" size={20} color={colors.goldLight} numberOfLines={1} adjustsFontSizeToFit>
               {x.v}
             </T>
-            <T size={11} color={colors.muted} style={{ marginTop: 2 }}>
-              {x.l}
-            </T>
-          </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 }}>
+              <T size={11} color={x.onPress ? colors.gold : colors.muted}>
+                {x.l}
+              </T>
+              {x.onPress && <Feather name="chevron-right" size={11} color={colors.gold} />}
+            </View>
+          </Pressable>
         ))}
       </View>
 

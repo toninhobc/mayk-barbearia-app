@@ -46,6 +46,9 @@ type State = {
   toggleFavorite: (barberId: string) => void;
 };
 
+/** Atendimentos necessários para ganhar um corte grátis. */
+export const LOYALTY_GOAL = 10;
+
 const ME = 'Antonio Barros Coelho';
 const emptyDraft: Draft = { serviceIds: [], barberId: null, day: null, slot: null, rescheduleId: null };
 
