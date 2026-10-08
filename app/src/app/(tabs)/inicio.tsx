@@ -4,6 +4,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarberCard, NextAppointmentCard, ServiceRow } from '@/components/cards';
 import { Chip, GoldButton, IconButton, SectionHeader, T } from '@/components/ui';
+import { UserAvatar } from '@/components/user-avatar';
 import { barbers, popular, services } from '@/data/mock';
 import { mine, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
@@ -39,11 +40,9 @@ export default function Inicio() {
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 10, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
       {/* Topo */}
       <View style={s.top}>
-        <View style={s.avatar}>
-          <T v="semibold" color={colors.silver}>
-            {me.name[0]}
-          </T>
-        </View>
+        <Pressable onPress={() => router.navigate('/perfil')} accessibilityLabel="Abrir perfil">
+          <UserAvatar size={44} />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <T size={12} color={colors.muted}>
             {greeting()}
@@ -136,7 +135,6 @@ export default function Inicio() {
 
 const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#2B2B2B', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
   empty: { borderRadius: 24, padding: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.28)' },
   loyal: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 18, padding: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   loyalIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.goldDark, alignItems: 'center', justifyContent: 'center' },

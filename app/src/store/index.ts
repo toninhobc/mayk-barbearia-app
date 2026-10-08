@@ -48,7 +48,7 @@ type Draft = {
 
 type State = {
   loggedIn: boolean;
-  me: { name: string; phone: string; email: string };
+  me: { name: string; phone: string; email: string; photo: string | null }; // photo = endereço local da imagem
   appointments: Appointment[];
   draft: Draft;
   points: number;
@@ -75,6 +75,7 @@ type State = {
   toggleNotifications: () => void;
   saveCard: (card: SavedCard) => void;
   removeCard: () => void;
+  setPhoto: (uri: string | null) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   removeNotice: (id: string) => void;
@@ -155,7 +156,7 @@ export const mine = (appts: Appointment[]) => appts.filter((a) => a.clientName =
 
 export const useStore = create<State>((set, get) => ({
   loggedIn: false,
-  me: { name: ME, phone: '(61) 98225-0725', email: 'antoniobc2507@gmail.com' },
+  me: { name: ME, phone: '(61) 98225-0725', email: 'antoniobc2507@gmail.com', photo: null },
   appointments: seed,
   draft: emptyDraft,
   points: 7,
@@ -241,6 +242,7 @@ export const useStore = create<State>((set, get) => ({
   toggleNotifications: () => set(({ notifications }) => ({ notifications: !notifications })),
   saveCard: (savedCard) => set({ savedCard }),
   removeCard: () => set({ savedCard: null }),
+  setPhoto: (photo) => set(({ me }) => ({ me: { ...me, photo } })),
   markRead: (id) => set(({ inbox }) => ({ inbox: inbox.map((n) => (n.id === id ? { ...n, read: true } : n)) })),
   markAllRead: () => set(({ inbox }) => ({ inbox: inbox.map((n) => ({ ...n, read: true })) })),
   removeNotice: (id) => set(({ inbox }) => ({ inbox: inbox.filter((n) => n.id !== id) })),
