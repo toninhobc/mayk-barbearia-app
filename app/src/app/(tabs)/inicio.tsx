@@ -15,7 +15,7 @@ const greeting = () => {
 
 export default function Inicio() {
   const { top } = useSafeAreaInsets();
-  const { me, appointments, points, favorites, draft, resetDraft, setBarber, toggleService, startRebook } = useStore();
+  const { me, appointments, points, favorites, draft, notifications, resetDraft, setBarber, toggleService, startRebook } = useStore();
 
   const next = mine(appointments)
     .filter((a) => a.status === 'agendado' && new Date(a.start) > new Date())
@@ -52,7 +52,7 @@ export default function Inicio() {
             {me.name.split(' ')[0]}
           </T>
         </View>
-        <IconButton icon="bell" badge />
+        <IconButton icon={notifications ? 'bell' : 'bell-off'} badge={notifications} onPress={() => router.navigate('/perfil')} />
       </View>
 
       {/* Próximo horário ou chamada para agendar */}

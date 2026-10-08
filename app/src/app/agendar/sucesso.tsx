@@ -15,6 +15,7 @@ export default function Sucesso() {
   const { id, remarcado } = useLocalSearchParams<{ id: string; remarcado?: string }>();
   const { top, bottom } = useSafeAreaInsets();
   const a = useStore((s) => s.appointments.find((x) => x.id === id));
+  const notifications = useStore((s) => s.notifications);
   if (!a) return null;
   const b = barberOf(a.barberId);
 
@@ -28,7 +29,9 @@ export default function Sucesso() {
           {remarcado ? 'Horário remarcado' : 'Horário confirmado'}
         </T>
         <T size={14} color={colors.muted} style={{ marginTop: 8, textAlign: 'center', lineHeight: 21 }}>
-          Te esperamos! Você receberá lembretes{'\n'}24h e 2h antes do atendimento.
+          {notifications
+            ? "Te esperamos! Você receberá lembretes\n24h e 2h antes do atendimento."
+            : 'Te esperamos! Seus lembretes estão\ndesativados. Ative em Perfil › Notificações.'}
         </T>
       </View>
 

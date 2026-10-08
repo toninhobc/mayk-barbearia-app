@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
+import { CardForm, cardBrand, cardError, emptyCard, type CardInput } from '@/components/card-form';
 import { barberOf } from '@/components/cards';
 import { Footer, GoldButton, Header, Kicker, T, type IconName } from '@/components/ui';
 import { brl, dateLong, hhmm } from '@/lib/format';
@@ -12,7 +13,7 @@ import { colors, radius, space } from '@/theme';
 
 const methods: { id: PayMethod; title: string; sub: string; icon: IconName; tag?: string }[] = [
   { id: 'pix', title: 'Pix', sub: 'Aprovação na hora', icon: 'zap', tag: 'Recomendado' },
-  { id: 'cartao', title: 'Cartão de crédito', sub: 'Mastercard •••• 4242', icon: 'credit-card' },
+  { id: 'cartao', title: 'Cartão de crédito', sub: '', icon: 'credit-card' }, // texto vem do cartão salvo
   { id: 'local', title: 'Pagar na barbearia', sub: 'Dinheiro, Pix ou cartão no balcão', icon: 'home' },
 ];
 
@@ -54,8 +55,11 @@ function FakeQR({ size = 180 }: { size?: number }) {
 }
 
 export default function Pagamento() {
-  const { draft, confirm } = useStore();
+  const { draft, confirm, savedCard, saveCard } = useStore();
   const [method, setMethod] = useState<PayMethod>('pix');
+  const [card, setCard] = useState<CardInput>(emptyCard);
+  const [useNewCard, setUseNewCard] = useState(false);
+  const newCard = method === 'cartao' && (!savedCard || useNewCard);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [secs, setSecs] = useState(600);
@@ -73,6 +77,10 @@ export default function Pagamento() {
 
   const finish = () => {
     setBusy(true);
+    if (newCard && card.save) {
+      const n = card.number.replace(/\D/g, '');
+      saveCard({ brand: cardBrand(n), last4: n.slice(-4) });
+    }
     setTimeout(() => {
       const appt = confirm(method);
       router.dismissAll();
@@ -140,13 +148,22 @@ export default function Pagamento() {
                   )}
                 </View>
                 <T size={12} color={colors.muted} style={{ marginTop: 2 }}>
-                  {m.sub}
+                  {m.id === 'cartao' ? (savedCard && !useNewCard ? `${savedCard.brand} •••• ${savedCard.last4}` : 'Novo cartão') : m.sub}
                 </T>
               </View>
               <View style={[s.radio, on && { borderColor: colors.gold }]}>{on && <View style={s.radioDot} />}</View>
             </Pressable>
           );
         })}
+
+        {method === 'cartao' && savedCard && (
+          <Pressable onPress={() => setUseNewCard(!useNewCard)} hitSlop={8} style={s.switchCard}>
+            <T v="semibold" size={13} color={colors.gold}>
+              {useNewCard ? `Usar ${savedCard.brand} •••• ${savedCard.last4}` : 'Usar outro cartão'}
+            </T>
+          </Pressable>
+        )}
+        {newCard && <CardForm value={card} onChange={setCard} />}
 
         {method === 'pix' && (
           <View style={s.pix}>
@@ -193,7 +210,7 @@ export default function Pagamento() {
             </T>
           </View>
         ) : (
-          <GoldButton style={{ flex: 1 }} label={cta} onPress={finish} />
+          <GoldButton style={{ flex: 1 }} label={cta} disabled={newCard && cardError(card) !== null} onPress={finish} />
         )}
       </Footer>
     </View>
@@ -213,6 +230,7 @@ const s = StyleSheet.create({
   pix: { marginTop: 6, padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center' },
   qrWrap: { padding: 12, backgroundColor: '#fff', borderRadius: 16 },
   copy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, alignSelf: 'stretch', padding: 14, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.gold },
+  switchCard: { alignSelf: 'flex-start', marginTop: -2, marginBottom: 12, marginLeft: 4 },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, marginBottom: 8 },
   busy: { flex: 1, height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
 });

@@ -11,7 +11,7 @@ const CANCEL_LIMIT_H = 2;
 
 export default function Agenda() {
   const { top } = useSafeAreaInsets();
-  const { appointments, cancel, startRebook, resetDraft } = useStore();
+  const { appointments, cancel, startRebook, resetDraft, notifications, toggleNotifications } = useStore();
   const [tab, setTab] = useState<'proximos' | 'historico'>('proximos');
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -102,9 +102,20 @@ export default function Agenda() {
               }
             />
           ))}
-          <T size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-            Você recebe lembretes 24h e 2h antes do horário.
-          </T>
+          {notifications ? (
+            <T size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
+              Você recebe lembretes 24h e 2h antes do horário.
+            </T>
+          ) : (
+            <Pressable onPress={toggleNotifications} hitSlop={8} style={{ alignSelf: 'center', marginTop: 8 }}>
+              <T size={12} color={colors.muted} style={{ textAlign: 'center' }}>
+                Lembretes desativados.{' '}
+                <T v="semibold" size={12} color={colors.gold}>
+                  Ativar
+                </T>
+              </T>
+            </Pressable>
+          )}
         </>
       )}
 
