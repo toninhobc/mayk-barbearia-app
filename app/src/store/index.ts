@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { barbers, coupons, services } from '@/data/mock';
+import { barbers, coupons, REFERRAL_CODE, services } from '@/data/mock';
 import { pickBarber } from '@/lib/availability';
 
 export type Status = 'agendado' | 'concluido' | 'cancelado';
@@ -24,6 +24,19 @@ export type SavedCard = { brand: string; last4: string };
 /** Ano é opcional: o benefício vale para o mês. */
 export type Birthday = { day: number; month: number; year?: number };
 
+export type NoticeKind = 'lembrete' | 'agendamento' | 'pagamento' | 'fidelidade' | 'promo' | 'avaliacao';
+
+/** Notificação da caixa de entrada (simulada nesta demonstração). */
+export type Notice = {
+  id: string;
+  kind: NoticeKind;
+  title: string;
+  body: string;
+  at: string; // ISO
+  read: boolean;
+  href?: string; // tela aberta ao tocar
+};
+
 type Draft = {
   serviceIds: string[];
   barberId: string | null; // null = sem preferência
@@ -43,6 +56,7 @@ type State = {
   birthday: Birthday | null;
   notifications: boolean;
   savedCard: SavedCard | null;
+  inbox: Notice[];
   login: () => void;
   logout: () => void;
   toggleService: (id: string) => void;
@@ -61,6 +75,8 @@ type State = {
   toggleNotifications: () => void;
   saveCard: (card: SavedCard) => void;
   removeCard: () => void;
+  markRead: (id: string) => void;
+  markAllRead: () => void;
 };
 
 /** Atendimentos necessários para ganhar um corte grátis. */
@@ -89,6 +105,28 @@ const seed: Appointment[] = [
   { id: 'o4', serviceIds: ['s1'], barberId: 'b5', start: at(2, 11), minutes: 40, totalCents: 9000, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
   { id: 'o5', serviceIds: ['s2'], barberId: 'b1', start: at(1, 10), minutes: 30, totalCents: 7000, status: 'agendado', paid: true, method: 'pix', clientName: 'Outro' },
 ];
+
+const names = (ids: string[]) => services.filter((s) => ids.includes(s.id)).map((s) => s.name).join(' + ');
+const shortName = (id: string) => barbers.find((b) => b.id === id)?.short ?? '';
+const when = (iso: string) => {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return `${day} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+};
+const ago = (hours: number) => new Date(Date.now() - hours * 3600000).toISOString();
+
+/** Notificações de exemplo, montadas a partir dos agendamentos de exemplo. */
+const seedInbox = (): Notice[] => {
+  const next = seed[0];
+  const last = seed[1];
+  return [
+    { id: 'n1', kind: 'lembrete', title: 'Seu horário está chegando', body: `${names(next.serviceIds)} com ${shortName(next.barberId)}, ${when(next.start)}.`, at: ago(1), read: false, href: '/agenda' },
+    { id: 'n2', kind: 'pagamento', title: 'Pagamento confirmado', body: `Recebemos seu Pix de ${(next.totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`, at: ago(5), read: false, href: '/perfil' },
+    { id: 'n3', kind: 'fidelidade', title: 'Você está perto do corte grátis', body: `Faltam ${LOYALTY_GOAL - 7} atendimentos para completar seu cartão do Clube Mayk.`, at: ago(26), read: false, href: '/fidelidade' },
+    { id: 'n4', kind: 'promo', title: '10% de desconto para você', body: `Use o cupom ${REFERRAL_CODE} no pagamento do seu próximo horário.`, at: ago(50), read: true, href: '/servicos' },
+    { id: 'n5', kind: 'avaliacao', title: 'Como foi seu último atendimento?', body: `Conte para a gente como foi com ${shortName(last.barberId)}.`, at: ago(24 * 13), read: true, href: `/barbeiro/${last.barberId}` },
+  ];
+};
 
 export const draftTotals = (serviceIds: string[]) => {
   const list = services.filter((s) => serviceIds.includes(s.id));
@@ -123,6 +161,7 @@ export const useStore = create<State>((set, get) => ({
   birthday: null,
   notifications: true,
   savedCard: { brand: 'Mastercard', last4: '4242' },
+  inbox: seedInbox(),
   login: () => set({ loggedIn: true }),
   logout: () => set({ loggedIn: false, draft: emptyDraft }),
   toggleService: (id) =>
@@ -172,10 +211,20 @@ export const useStore = create<State>((set, get) => ({
       method: old ? old.method : method,
       clientName: ME,
     };
-    set({
+    const notice: Notice = {
+      id: 'n' + Date.now(),
+      kind: 'agendamento',
+      title: old ? 'Horário remarcado' : 'Agendamento confirmado',
+      body: `${names(appt.serviceIds)} com ${shortName(barberId)}, ${when(appt.start)}.`,
+      at: new Date().toISOString(),
+      read: false,
+      href: '/agenda',
+    };
+    set(({ inbox }) => ({
       appointments: [...others, ...(old ? [{ ...old, status: 'cancelado' as const }] : []), appt],
       draft: emptyDraft,
-    });
+      inbox: [notice, ...inbox],
+    }));
     return appt;
   },
   cancel: (id) =>
@@ -190,4 +239,6 @@ export const useStore = create<State>((set, get) => ({
   toggleNotifications: () => set(({ notifications }) => ({ notifications: !notifications })),
   saveCard: (savedCard) => set({ savedCard }),
   removeCard: () => set({ savedCard: null }),
+  markRead: (id) => set(({ inbox }) => ({ inbox: inbox.map((n) => (n.id === id ? { ...n, read: true } : n)) })),
+  markAllRead: () => set(({ inbox }) => ({ inbox: inbox.map((n) => ({ ...n, read: true })) })),
 }));
