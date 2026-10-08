@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Kicker, Logo, SectionHeader, T, type IconName } from '@/components/ui';
+import { monthName } from '@/lib/format';
 import { LOYALTY_GOAL as GOAL, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
 
@@ -17,6 +18,7 @@ const perks: { icon: IconName; title: string; sub: string }[] = [
 export default function Fidelidade() {
   const { top } = useSafeAreaInsets();
   const points = useStore((s) => s.points);
+  const birthday = useStore((s) => s.birthday);
   const [copied, setCopied] = useState(false);
   const code = 'ANTONIO10';
 
@@ -57,7 +59,15 @@ export default function Fidelidade() {
       </LinearGradient>
 
       <SectionHeader title="Benefícios" />
-      {perks.map((p) => (
+      {perks.map((p) => ({
+        ...p,
+        sub:
+          p.icon === 'gift'
+            ? birthday
+              ? `20% off em ${monthName(birthday.month)}, o mês do seu aniversário`
+              : '20% off no mês do aniversário · cadastre a data no Perfil'
+            : p.sub,
+      })).map((p) => (
         <View key={p.title} style={s.perk}>
           <View style={s.perkIcon}>
             <Feather name={p.icon} size={19} color={colors.gold} />

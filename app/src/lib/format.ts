@@ -17,3 +17,13 @@ export const hhmm = (minutes: number) =>
 
 export const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+export const monthName = (month: number) => MONTHS[month - 1];
+
+/** "15 de março" ou "15/03/1995" quando o ano é informado. */
+export const birthdayLabel = (b: { day: number; month: number; year?: number }) =>
+  b.year
+    ? `${String(b.day).padStart(2, '0')}/${String(b.month).padStart(2, '0')}/${b.year}`
+    : `${b.day} de ${monthName(b.month)}`;
