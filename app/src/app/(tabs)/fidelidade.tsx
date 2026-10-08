@@ -5,10 +5,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Kicker, Logo, SectionHeader, T, type IconName } from '@/components/ui';
-import { useStore } from '@/store';
+import { LOYALTY_GOAL as GOAL, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
 
-const GOAL = 10;
 const perks: { icon: IconName; title: string; sub: string }[] = [
   { icon: 'scissors', title: 'Corte grátis', sub: 'A cada 10 atendimentos' },
   { icon: 'gift', title: 'Presente de aniversário', sub: '20% off no mês do seu aniversário' },
