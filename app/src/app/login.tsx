@@ -1,109 +1,114 @@
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GoldButton, IconButton, Logo, T } from '@/components/ui';
-import { useStore } from '@/store';
-import { colors, fonts, radius, space } from '@/theme';
+import { SmsCode } from '@/components/sms-code';
+import { SocialLogin } from '@/components/social-login';
+import { Field, GoldButton, IconButton, Logo, OutlineButton, T } from '@/components/ui';
+import { isPhone, maskPhone } from '@/lib/format';
+import { accountKey, useStore, type Provider } from '@/store';
+import { colors, radius, space } from '@/theme';
 
-const maskPhone = (raw: string) => {
-  const d = raw.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : '';
-  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-};
+const providerName: Record<Provider, string> = { apple: 'Apple', google: 'Google' };
 
 export default function Login() {
+  const params = useLocalSearchParams<{ phone?: string }>();
   const { top, bottom } = useSafeAreaInsets();
-  const login = useStore((s) => s.login);
-  const [phone, setPhone] = useState('(61) 98225-0725');
+  const { login, hasAccount, socialLinks } = useStore();
+  const [phone, setPhone] = useState(params.phone ? maskPhone(params.phone) : '(61) 98225-0725');
   const [step, setStep] = useState<'phone' | 'code'>('phone');
-  const [code, setCode] = useState('');
-  const codeRef = useRef<TextInput>(null);
-  const phoneOk = phone.replace(/\D/g, '').length === 11;
+  // conta não encontrada: pelo celular digitado ou pelo login social
+  const [missing, setMissing] = useState<'phone' | Provider | null>(null);
 
-  const enter = () => {
-    login();
+  const sendCode = () => {
+    if (!hasAccount(phone)) return setMissing('phone');
+    setStep('code');
+  };
+
+  const social = (p: Provider) => {
+    const key = socialLinks[p];
+    if (!key) return setMissing(p);
+    login(key);
     router.replace('/inicio');
   };
+
+  const enter = () => {
+    login(accountKey(phone));
+    router.replace('/inicio');
+  };
+
+  const signUp = () =>
+    router.replace(missing === 'phone' ? { pathname: '/cadastro', params: { phone: accountKey(phone) } } : '/cadastro');
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ paddingTop: top + 8, paddingHorizontal: space.gutter }}>
-        <IconButton icon="chevron-left" onPress={() => (step === 'code' ? setStep('phone') : router.back())} />
+        <IconButton icon="chevron-left" onPress={() => (step === 'code' ? setStep('phone') : router.canGoBack() ? router.back() : router.replace('/'))} />
       </View>
-      <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: 28 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: space.gutter, paddingTop: 24, paddingBottom: bottom + 24 }}>
         <Logo size={56} />
         <T v="serif" size={32} style={{ marginTop: 24 }}>
           {step === 'phone' ? 'Bem-vindo de volta' : 'Confirme o código'}
         </T>
-        <T size={14} color={colors.muted} style={{ marginTop: 8, lineHeight: 21 }}>
-          {step === 'phone'
-            ? 'Entre com seu celular. Enviaremos um código por SMS.'
-            : `Enviamos um código de 4 dígitos para ${phone}.`}
-        </T>
 
         {step === 'phone' ? (
-          <View style={s.field}>
-            <T v="medium" size={15} color={colors.muted}>
-              +55
+          <>
+            <T size={14} color={colors.muted} style={{ marginTop: 8, lineHeight: 21 }}>
+              Entre com seu celular. Enviaremos um código por SMS.
             </T>
-            <TextInput
+            <Field
+              label="Celular"
+              prefix="+55"
               value={phone}
-              onChangeText={(t) => setPhone(maskPhone(t))}
-              keyboardType="phone-pad"
-              placeholder="(61) 90000-0000"
-              placeholderTextColor={colors.dim}
-              style={s.input}
-            />
-          </View>
-        ) : (
-          <Pressable onPress={() => codeRef.current?.focus()} style={s.codeRow}>
-            {[0, 1, 2, 3].map((i) => (
-              <View key={i} style={[s.codeBox, code.length === i && { borderColor: colors.gold }]}>
-                <T v="serif" size={28}>
-                  {code[i] ?? ''}
-                </T>
-              </View>
-            ))}
-            <TextInput
-              ref={codeRef}
-              value={code}
               onChangeText={(t) => {
-                const c = t.replace(/\D/g, '').slice(0, 4);
-                setCode(c);
-                if (c.length === 4) setTimeout(enter, 250);
+                setPhone(maskPhone(t));
+                if (missing === 'phone') setMissing(null);
               }}
-              keyboardType="number-pad"
-              autoFocus
-              style={s.hidden}
+              keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              autoComplete="tel"
+              placeholder="(61) 90000-0000"
+              style={{ marginTop: 28, marginBottom: 16 }}
             />
-          </Pressable>
-        )}
-        {step === 'code' && (
-          <T size={12} color={colors.muted} style={{ marginTop: 14 }}>
-            Demonstração: digite qualquer código.{' '}
-            <T v="semibold" size={12} color={colors.gold} onPress={enter}>
-              Pular
+
+            {missing && (
+              <View style={s.missing}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Feather name="user-x" size={18} color={colors.gold} style={{ marginTop: 1 }} />
+                  <View style={{ flex: 1 }}>
+                    <T v="semibold" size={14}>
+                      {missing === 'phone' ? 'Não encontramos uma conta com este celular.' : `Nenhuma conta ligada ao ${providerName[missing]}.`}
+                    </T>
+                    <T size={12} color={colors.muted} style={{ marginTop: 4, lineHeight: 18 }}>
+                      {missing === 'phone' ? 'Confira o número ou crie sua conta em menos de um minuto.' : 'Entre pelo celular ou crie sua conta.'}
+                    </T>
+                  </View>
+                </View>
+                <OutlineButton label={missing === 'phone' ? 'Criar conta com este número' : 'Criar conta'} icon="user-plus" onPress={signUp} />
+              </View>
+            )}
+
+            <GoldButton label="Receber código" disabled={!isPhone(phone)} onPress={sendCode} />
+            <SocialLogin onDone={social} />
+            <View style={{ flex: 1, minHeight: 24 }} />
+            <T size={13} color={colors.muted} style={{ textAlign: 'center' }}>
+              Não tem conta?{' '}
+              <T v="semibold" size={13} color={colors.gold} onPress={() => router.replace('/cadastro')}>
+                Criar conta
+              </T>
             </T>
-          </T>
-        )}
-      </View>
-      <View style={{ paddingHorizontal: space.gutter, paddingBottom: bottom + 24 }}>
-        {step === 'phone' ? (
-          <GoldButton label="Receber código" disabled={!phoneOk} onPress={() => setStep('code')} />
+          </>
         ) : (
-          <GoldButton label="Entrar" disabled={code.length < 4} onPress={enter} />
+          <SmsCode phone={phone} onDone={enter} />
         )}
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
-  field: { marginTop: 32, flexDirection: 'row', alignItems: 'center', gap: 14, height: 62, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 18 },
-  input: { flex: 1, color: colors.text, fontFamily: fonts.semibold, fontSize: 18 },
-  codeRow: { marginTop: 32, flexDirection: 'row', gap: 12 },
-  codeBox: { flex: 1, height: 70, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  missing: { gap: 12, padding: 16, marginBottom: 16, borderRadius: radius.md, backgroundColor: 'rgba(200,161,90,0.08)', borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
 });

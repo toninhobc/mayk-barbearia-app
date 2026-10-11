@@ -31,11 +31,11 @@ export default function Welcome() {
         <T size={14} color="#A9A9A9" style={{ lineHeight: 22, marginTop: 16, marginBottom: 30 }}>
           Agende com seu barbeiro favorito, pague por Pix e acumule pontos a cada visita.
         </T>
-        <GoldButton label="Agendar agora" icon="arrow-right" onPress={() => router.push('/login')} />
-        <Pressable onPress={() => router.push('/login')} style={{ marginTop: 16, alignItems: 'center' }} hitSlop={8}>
-          <T size={13} color={colors.muted}>
-            Já tem conta?{' '}
-            <T v="semibold" size={13}>
+        <GoldButton label="Criar conta" icon="arrow-right" onPress={() => router.push('/cadastro')} />
+        <Pressable onPress={() => router.push('/login')} style={({ pressed }) => [s.secondary, pressed && { opacity: 0.7 }]}>
+          <T size={14} color={colors.muted}>
+            Já tenho conta ·{' '}
+            <T v="semibold" size={14}>
               Entrar
             </T>
           </T>
@@ -46,5 +46,6 @@ export default function Welcome() {
 }
 
 const s = StyleSheet.create({
+  secondary: { marginTop: 12, height: 54, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   content: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: space.xl - 2 },
 });

@@ -11,11 +11,11 @@ const CANCEL_LIMIT_H = 2;
 
 export default function Agenda() {
   const { top } = useSafeAreaInsets();
-  const { appointments, cancel, startRebook, resetDraft, notifications, toggleNotifications } = useStore();
+  const { account, appointments, cancel, startRebook, resetDraft, notifications, toggleNotifications } = useStore();
   const [tab, setTab] = useState<'proximos' | 'historico'>('proximos');
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const list = mine(appointments);
+  const list = mine(appointments, account);
   const upcoming = list
     .filter((a) => a.status === 'agendado' && new Date(a.start) > new Date())
     .sort((a, b) => +new Date(a.start) - +new Date(b.start));

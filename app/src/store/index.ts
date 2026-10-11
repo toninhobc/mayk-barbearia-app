@@ -46,18 +46,34 @@ type Draft = {
   coupon: string | null; // código já validado
 };
 
-type State = {
-  loggedIn: boolean;
-  me: { name: string; phone: string; email: string; photo: string | null }; // photo = endereço local da imagem
-  appointments: Appointment[];
-  draft: Draft;
+export type Me = { name: string; phone: string; email: string; photo: string | null }; // photo = endereço local da imagem
+export type Provider = 'apple' | 'google';
+
+/** Dados de cada conta. Os da conta logada ficam "soltos" no store (me, points...) para as telas lerem direto. */
+type Profile = {
+  me: Me;
   points: number;
   favorites: string[];
   birthday: Birthday | null;
   notifications: boolean;
   savedCard: SavedCard | null;
   inbox: Notice[];
-  login: () => void;
+};
+
+type State = Profile & {
+  loggedIn: boolean;
+  /** Chave da conta logada: dígitos do celular (ou "apple:email" no cadastro social sem celular). */
+  account: string | null;
+  /** Contas criadas nesta sessão (só em memória: somem ao fechar o app). */
+  accounts: Record<string, Profile>;
+  /** Conta ligada a cada login social. */
+  socialLinks: Partial<Record<Provider, string>>;
+  /** Agenda da barbearia: horários de todos os clientes. */
+  appointments: Appointment[];
+  draft: Draft;
+  hasAccount: (phone: string) => boolean;
+  login: (key: string) => void;
+  register: (data: { name: string; phone: string; email: string; key?: string; provider?: Provider }) => void;
   logout: () => void;
   toggleService: (id: string) => void;
   /** Aplica o cupom se for válido; retorna se deu certo. */
@@ -85,7 +101,12 @@ type State = {
 /** Atendimentos necessários para ganhar um corte grátis. */
 export const LOYALTY_GOAL = 10;
 
-const ME = 'Antonio Barros Coelho';
+/** Conta de demonstração (Antonio), já existente ao abrir o app. */
+export const DEMO_KEY = '61982250725';
+const ME = DEMO_KEY;
+
+export const accountKey = (phone: string) => phone.replace(/\D/g, '');
+
 const emptyDraft: Draft = { serviceIds: [], barberId: null, day: null, slot: null, rescheduleId: null, coupon: null };
 
 const at = (daysFromNow: number, hour: number, min = 0) => {
@@ -151,22 +172,75 @@ export const withCoupon = (cents: number, coupon: string | null) => {
 const parts = (id: string) => services.find((s) => s.id === id)?.includes ?? [id];
 const overlaps = (a: string, b: string) => parts(a).some((p) => parts(b).includes(p));
 
-/** Agendamentos do próprio cliente. */
-export const mine = (appts: Appointment[]) => appts.filter((a) => a.clientName === ME);
+/** Agendamentos de uma conta. */
+export const mine = (appts: Appointment[], account: string | null) => appts.filter((a) => a.clientName === account);
 
-export const useStore = create<State>((set, get) => ({
-  loggedIn: false,
-  me: { name: ME, phone: '(61) 98225-0725', email: 'antoniobc2507@gmail.com', photo: null },
-  appointments: seed,
-  draft: emptyDraft,
+const demoProfile: Profile = {
+  me: { name: 'Antonio Barros Coelho', phone: '(61) 98225-0725', email: 'antoniobc2507@gmail.com', photo: null },
   points: 7,
   favorites: ['b5'],
   birthday: null,
   notifications: true,
   savedCard: { brand: 'Mastercard', last4: '4242' },
   inbox: seedInbox(),
-  login: () => set({ loggedIn: true }),
-  logout: () => set({ loggedIn: false, draft: emptyDraft }),
+};
+
+/** Caixa de entrada de uma conta recém-criada. */
+const welcomeInbox = (name: string): Notice[] => [
+  { id: 'w1', kind: 'promo', title: `Bem-vindo, ${name.split(' ')[0]}!`, body: 'Sua conta na Mayk Barbearia está pronta. Agende seu primeiro horário.', at: new Date().toISOString(), read: false, href: '/servicos' },
+  { id: 'w2', kind: 'promo', title: '10% de desconto no primeiro corte', body: `Use o cupom ${REFERRAL_CODE} no pagamento.`, at: new Date().toISOString(), read: false, href: '/servicos' },
+];
+
+const profileOf = (s: State): Profile => ({
+  me: s.me,
+  points: s.points,
+  favorites: s.favorites,
+  birthday: s.birthday,
+  notifications: s.notifications,
+  savedCard: s.savedCard,
+  inbox: s.inbox,
+});
+
+/** Guarda as alterações da conta logada antes de trocar de conta. */
+const saved = (s: State) => (s.account ? { ...s.accounts, [s.account]: profileOf(s) } : s.accounts);
+
+export const useStore = create<State>((set, get) => ({
+  ...demoProfile,
+  loggedIn: false,
+  account: null,
+  accounts: { [DEMO_KEY]: demoProfile },
+  socialLinks: {},
+  appointments: seed,
+  draft: emptyDraft,
+  hasAccount: (phone) => accountKey(phone) in get().accounts,
+  login: (key) =>
+    set((s) => {
+      const accounts = saved(s);
+      return { ...accounts[key], accounts, account: key, loggedIn: true, draft: emptyDraft };
+    }),
+  // conta nova começa limpa: sem histórico, pontos ou cartão (mantém foto e aniversário escolhidos no cadastro)
+  register: ({ name, phone, email, key, provider }) =>
+    set((s) => {
+      const k = key ?? accountKey(phone);
+      const profile: Profile = {
+        me: { name, phone, email, photo: s.me.photo },
+        points: 0,
+        favorites: [],
+        birthday: s.birthday,
+        notifications: true,
+        savedCard: null,
+        inbox: welcomeInbox(name),
+      };
+      return {
+        ...profile,
+        accounts: { ...saved(s), [k]: profile },
+        socialLinks: provider ? { ...s.socialLinks, [provider]: k } : s.socialLinks,
+        account: k,
+        loggedIn: true,
+        draft: emptyDraft,
+      };
+    }),
+  logout: () => set((s) => ({ accounts: saved(s), account: null, loggedIn: false, draft: emptyDraft })),
   toggleService: (id) =>
     set(({ draft }) => ({
       draft: {
@@ -194,7 +268,7 @@ export const useStore = create<State>((set, get) => ({
       draft: { ...emptyDraft, serviceIds: [...a.serviceIds], barberId: a.barberId, rescheduleId: reschedule ? a.id : null },
     }),
   confirm: (method) => {
-    const { draft, appointments } = get();
+    const { draft, appointments, account } = get();
     const { cents, minutes } = draftTotals(draft.serviceIds);
     const start = new Date(draft.day!);
     start.setHours(0, draft.slot!, 0, 0);
@@ -212,7 +286,7 @@ export const useStore = create<State>((set, get) => ({
       status: 'agendado',
       paid: old ? old.paid : method !== 'local',
       method: old ? old.method : method,
-      clientName: ME,
+      clientName: account ?? DEMO_KEY,
     };
     const notice: Notice = {
       id: 'n' + Date.now(),

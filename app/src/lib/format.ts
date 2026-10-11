@@ -40,3 +40,15 @@ export const timeAgo = (iso: string, now = new Date()) => {
   if (d < 7) return `há ${d} dias`;
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 };
+
+/** (61) 98225-0725 enquanto digita. */
+export const maskPhone = (raw: string) => {
+  const d = raw.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+export const isPhone = (s: string) => s.replace(/\D/g, '').length === 11;
+
+export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
