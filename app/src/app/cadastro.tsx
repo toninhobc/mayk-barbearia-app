@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,11 +7,11 @@ import { BirthdaySheet } from '@/components/birthday-sheet';
 import { PhotoSheet } from '@/components/photo-sheet';
 import { Sheet } from '@/components/sheet';
 import { SmsCode } from '@/components/sms-code';
-import { SocialLogin, type Provider } from '@/components/social-login';
+import { SocialLogin } from '@/components/social-login';
 import { Field, GoldButton, IconButton, T } from '@/components/ui';
 import { UserAvatar } from '@/components/user-avatar';
 import { birthdayLabel, isEmail, isPhone, maskPhone } from '@/lib/format';
-import { useStore } from '@/store';
+import { accountKey, useStore, type Provider } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 type Doc = 'termos' | 'privacidade';
@@ -39,10 +39,11 @@ const docs: Record<Doc, { title: string; body: string[] }> = {
 
 export default function Cadastro() {
   const { top, bottom } = useSafeAreaInsets();
-  const { birthday, register, setPhoto, setBirthday } = useStore();
+  const params = useLocalSearchParams<{ phone?: string }>();
+  const { birthday, register, login, hasAccount, socialLinks, setPhoto, setBirthday } = useStore();
   const [step, setStep] = useState<'form' | 'code'>('form');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(params.phone ? maskPhone(params.phone) : '');
   const [email, setEmail] = useState('');
   const [terms, setTerms] = useState(false);
   const [touched, setTouched] = useState({ name: false, phone: false, email: false });
@@ -56,10 +57,11 @@ export default function Cadastro() {
 
   const errors = {
     name: name.trim().length < 2 ? 'Informe seu nome.' : null,
-    phone: !isPhone(phone) ? 'Celular com DDD, 11 dígitos.' : null,
+    phone: !isPhone(phone) ? 'Celular com DDD, 11 dígitos.' : hasAccount(phone) ? 'Este celular já tem conta.' : null,
     email: !isEmail(email) ? 'E-mail inválido.' : null,
   };
-  const valid = !errors.name && !errors.phone && !errors.email && terms;
+  const taken = isPhone(phone) && hasAccount(phone);
+  const valid =!errors.name && !errors.phone && !errors.email && terms;
   const touch = (k: keyof typeof touched) => setTouched((t) => ({ ...t, [k]: true }));
 
   const finish = () => {
@@ -68,11 +70,21 @@ export default function Cadastro() {
   };
 
   // Apple/Google devolvem nome e e-mail da conta (celular não). Simulado: usa o que já foi digitado ou um exemplo.
+  // Se o Apple/Google já tem conta ligada, só entra nela.
   const finishSocial = (p: Provider) => {
+    const linked = socialLinks[p];
+    if (linked) {
+      login(linked);
+      return router.replace('/inicio');
+    }
+    const mail = errors.email ? `cliente@${p === 'apple' ? 'icloud' : 'gmail'}.com` : email.trim().toLowerCase();
     register({
       name: errors.name ? 'Cliente Mayk' : name.trim().replace(/\s+/g, ' '),
       phone: errors.phone ? '' : phone,
-      email: errors.email ? `cliente@${p === 'apple' ? 'icloud' : 'gmail'}.com` : email.trim().toLowerCase(),
+      email: mail,
+      // sem celular válido (ou já usado), a conta é identificada pelo e-mail do provedor
+      key: errors.phone ? `${p}:${mail}` : accountKey(phone),
+      provider: p,
     });
     router.replace('/inicio');
   };
@@ -134,8 +146,16 @@ export default function Cadastro() {
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"
                 autoComplete="tel"
-                error={touched.phone ? errors.phone : null}
+                error={touched.phone || taken ? errors.phone : null}
               />
+              {taken && (
+                <T size={13} color={colors.muted} style={{ marginTop: -6 }}>
+                  É você?{' '}
+                  <T v="semibold" size={13} color={colors.gold} onPress={() => router.replace({ pathname: '/login', params: { phone: accountKey(phone) } })}>
+                    Entrar com este número
+                  </T>
+                </T>
+              )}
               <Field
                 label="E-mail"
                 value={email}

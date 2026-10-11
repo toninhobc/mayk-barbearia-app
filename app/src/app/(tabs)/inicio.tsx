@@ -16,9 +16,9 @@ const greeting = () => {
 
 export default function Inicio() {
   const { top } = useSafeAreaInsets();
-  const { me, appointments, points, favorites, draft, notifications, inbox, resetDraft, setBarber, toggleService, startRebook } = useStore();
+  const { me, account, appointments, points, favorites, draft, notifications, inbox, resetDraft, setBarber, toggleService, startRebook } = useStore();
 
-  const next = mine(appointments)
+  const next = mine(appointments, account)
     .filter((a) => a.status === 'agendado' && new Date(a.start) > new Date())
     .sort((a, b) => +new Date(a.start) - +new Date(b.start))[0];
 

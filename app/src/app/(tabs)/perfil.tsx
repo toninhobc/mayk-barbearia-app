@@ -53,9 +53,9 @@ function Row({ icon, label, value, onPress, danger }: { icon: IconName; label: s
 
 export default function Perfil() {
   const { top } = useSafeAreaInsets();
-  const { me, appointments, points, logout, birthday, notifications, toggleNotifications, savedCard, removeCard } = useStore();
+  const { me, account, appointments, points, logout, birthday, notifications, toggleNotifications, savedCard, removeCard } = useStore();
   const [sheet, setSheet] = useState<'birthday' | 'cards' | 'photo' | null>(null);
-  const all = mine(appointments);
+  const all = mine(appointments, account);
   const paid = all.filter((a) => a.paid && a.status !== 'cancelado').sort((a, b) => +new Date(b.start) - +new Date(a.start));
   const done = all.filter((a) => a.status === 'concluido');
   const favorite = favoriteBarber(done);
@@ -152,7 +152,8 @@ export default function Perfil() {
           danger
           onPress={() => {
             logout();
-            router.replace('/');
+            // volta à boas-vindas que já está no histórico, sem empilhar outra cópia
+            router.dismissTo('/');
           }}
         />
       </View>

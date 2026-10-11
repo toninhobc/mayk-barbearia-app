@@ -13,7 +13,11 @@ export function SocialLogin({ onDone, caption = 'ou', note }: { onDone: (p: Prov
   const press = (p: Provider) => {
     if (busy) return;
     setBusy(p);
-    setTimeout(() => onDone(p), 800);
+    setTimeout(() => {
+      // se a tela não mudar (ex.: "nenhuma conta ligada"), os botões voltam a funcionar
+      setBusy(null);
+      onDone(p);
+    }, 800);
   };
 
   const Btn = ({ p, label, icon, apple }: { p: Provider; label: string; icon: 'logo-apple' | 'logo-google'; apple?: boolean }) => {
