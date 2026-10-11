@@ -7,9 +7,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type ImageSourcePropType,
   type StyleProp,
+  type TextInputProps,
   type TextProps,
   type ViewStyle,
 } from 'react-native';
@@ -198,6 +200,30 @@ export function Footer({ children }: { children: ReactNode }) {
   return <View style={[s.footer, { paddingBottom: bottom + 18 }]}>{children}</View>;
 }
 
+/** Campo de formulário: rótulo, caixa com prefixo opcional (ex.: +55) e erro abaixo. */
+export function Field({ label, prefix, error, style, ...input }: TextInputProps & { label: string; prefix?: string; error?: string | null }) {
+  return (
+    <View style={style as StyleProp<ViewStyle>}>
+      <T v="medium" size={12} color={colors.muted} style={{ marginBottom: 6 }}>
+        {label}
+      </T>
+      <View style={[s.field, error ? { borderColor: colors.danger } : null]}>
+        {prefix ? (
+          <T v="medium" size={15} color={colors.muted}>
+            {prefix}
+          </T>
+        ) : null}
+        <TextInput placeholderTextColor={colors.dim} {...input} style={s.fieldInput} />
+      </View>
+      {error ? (
+        <T size={12} color={colors.danger} style={{ marginTop: 6 }}>
+          {error}
+        </T>
+      ) : null}
+    </View>
+  );
+}
+
 export const Logo = ({ size = 84, ring = true }: { size?: number; ring?: boolean }) => (
   <Image
     source={logo}
@@ -227,5 +253,7 @@ const s = StyleSheet.create({
   section: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 28, marginBottom: 14 },
   card: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space.md },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.gutter, paddingBottom: 12, gap: 12, backgroundColor: colors.bg },
+  field: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 },
+  fieldInput: { flex: 1, height: '100%', color: colors.text, fontFamily: fonts.semibold, fontSize: 16 },
   footer: { paddingHorizontal: space.gutter, paddingTop: 14, backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', alignItems: 'center', gap: 16 },
 });

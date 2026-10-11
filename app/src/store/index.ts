@@ -58,6 +58,7 @@ type State = {
   savedCard: SavedCard | null;
   inbox: Notice[];
   login: () => void;
+  register: (data: { name: string; phone: string; email: string }) => void;
   logout: () => void;
   toggleService: (id: string) => void;
   /** Aplica o cupom se for válido; retorna se deu certo. */
@@ -166,6 +167,17 @@ export const useStore = create<State>((set, get) => ({
   savedCard: { brand: 'Mastercard', last4: '4242' },
   inbox: seedInbox(),
   login: () => set({ loggedIn: true }),
+  // conta nova começa limpa: sem histórico próprio, pontos ou cartão (mantém foto e aniversário do cadastro)
+  register: ({ name, phone, email }) =>
+    set(({ me, appointments }) => ({
+      loggedIn: true,
+      me: { ...me, name, phone, email },
+      appointments: appointments.filter((a) => a.clientName !== ME),
+      points: 0,
+      favorites: [],
+      savedCard: null,
+      draft: emptyDraft,
+    })),
   logout: () => set({ loggedIn: false, draft: emptyDraft }),
   toggleService: (id) =>
     set(({ draft }) => ({

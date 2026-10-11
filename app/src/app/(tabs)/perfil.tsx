@@ -73,7 +73,7 @@ export default function Perfil() {
           {me.name}
         </T>
         <T size={13} color={colors.muted} style={{ marginTop: 4 }}>
-          {me.phone} · {me.email}
+          {[me.phone, me.email].filter(Boolean).join(' · ')}
         </T>
       </View>
 
@@ -107,6 +107,11 @@ export default function Perfil() {
 
       <SectionHeader title="Pagamentos" />
       <View style={s.group}>
+        {paid.length === 0 && (
+          <T size={13} color={colors.muted} style={{ padding: 16 }}>
+            Nenhum pagamento ainda. Seus recibos aparecem aqui.
+          </T>
+        )}
         {paid.slice(0, 4).map((a, i) => (
           <View key={a.id} style={[s.payRow, i > 0 && s.sep]}>
             <View style={{ flex: 1 }}>
