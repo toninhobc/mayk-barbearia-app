@@ -6,7 +6,7 @@ import { BarberCard, NextAppointmentCard, ServiceRow } from '@/components/cards'
 import { Chip, GoldButton, IconButton, SectionHeader, T } from '@/components/ui';
 import { UserAvatar } from '@/components/user-avatar';
 import { barbers, popular, services } from '@/data/mock';
-import { mine, useStore } from '@/store';
+import { LOYALTY_GOAL, mine, useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 const greeting = () => {
@@ -16,7 +16,7 @@ const greeting = () => {
 
 export default function Inicio() {
   const { top } = useSafeAreaInsets();
-  const { me, account, appointments, points, favorites, draft, notifications, inbox, resetDraft, setBarber, toggleService, startRebook } = useStore();
+  const { me, account, appointments, points, rewards, favorites, draft, notifications, inbox, resetDraft, setBarber, toggleService, startRebook } = useStore();
 
   const next = mine(appointments, account)
     .filter((a) => a.status === 'agendado' && new Date(a.start) > new Date())
@@ -121,10 +121,14 @@ export default function Inicio() {
         </View>
         <View style={{ flex: 1 }}>
           <T v="semibold" size={14}>
-            Faltam {10 - points} cortes para um grátis
+            {rewards > 0
+              ? `Você tem ${rewards === 1 ? '1 corte grátis' : `${rewards} cortes grátis`} 🎉`
+              : LOYALTY_GOAL - points === 1
+                ? 'Falta 1 corte para um grátis'
+                : `Faltam ${LOYALTY_GOAL - points} cortes para um grátis`}
           </T>
           <View style={s.track}>
-            <View style={[s.fill, { width: `${points * 10}%` }]} />
+            <View style={[s.fill, { width: `${rewards > 0 ? 100 : (points / LOYALTY_GOAL) * 100}%` }]} />
           </View>
         </View>
         <Feather name="chevron-right" size={18} color={colors.muted} />

@@ -116,7 +116,9 @@ export function AppointmentRow({ a, footer }: { a: Appointment; footer?: ReactNo
   const status =
     a.status === 'cancelado'
       ? { t: 'Cancelado', c: colors.danger }
-      : a.status === 'concluido'
+      : a.status === 'falta'
+        ? { t: 'Não compareceu', c: colors.danger }
+        : a.status === 'concluido'
         ? { t: 'Concluído', c: colors.muted }
         : a.paid
           ? { t: 'Pago', c: colors.success }

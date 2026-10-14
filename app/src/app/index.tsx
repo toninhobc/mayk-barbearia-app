@@ -40,6 +40,11 @@ export default function Welcome() {
             </T>
           </T>
         </Pressable>
+        <Pressable onPress={() => router.push('/equipe')} hitSlop={8} style={({ pressed }) => [s.staff, pressed && { opacity: 0.7 }]}>
+          <T size={12} color={colors.muted}>
+            Sou da equipe Mayk · <T v="semibold" size={12} color={colors.gold}>Acessar painel</T>
+          </T>
+        </Pressable>
       </View>
     </View>
   );
@@ -47,5 +52,6 @@ export default function Welcome() {
 
 const s = StyleSheet.create({
   secondary: { marginTop: 12, height: 54, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  staff: { alignSelf: 'center', marginTop: 18, paddingVertical: 4 },
   content: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: space.xl - 2 },
 });

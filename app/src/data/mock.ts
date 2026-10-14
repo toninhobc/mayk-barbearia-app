@@ -68,6 +68,20 @@ export const barbers: Barber[] = [
   { id: 'b6', name: 'Mayckson Vilar Azevedo', short: 'Mayckson', rating: 4.9, reviews: 300, specialties: ['Todos os estilos'], bio: 'Fundador da Mayk Barbearia.', color: '#2B1F18' },
 ];
 
+/** Dono da barbearia: no painel, vê a agenda de todos e o resumo da casa. */
+export const OWNER_ID = 'b6';
+
+/** Clientes fictícios que ocupam a agenda de exemplo (chave → nome). */
+export const guests: Record<string, string> = {
+  g1: 'Rafael Martins', g2: 'Lucas Pereira', g3: 'Thiago Souza', g4: 'Bruno Almeida', g5: 'Gustavo Lima',
+  g6: 'Felipe Rocha', g7: 'Mateus Carvalho', g8: 'Pedro Henrique', g9: 'João Vitor', g10: 'Caio Ribeiro',
+  g11: 'Diego Fernandes', g12: 'Marcelo Costa', g13: 'Vinícius Barros', g14: 'Henrique Dias', g15: 'Leonardo Melo',
+  g16: 'Eduardo Nunes', g17: 'Rodrigo Teixeira', g18: 'André Luiz', g19: 'Samuel Freitas', g20: 'Daniel Moura',
+};
+
+/** Destaques que o cliente pode marcar ao avaliar. */
+export const reviewTags = ['Pontualidade', 'Capricho', 'Atendimento', 'Ambiente', 'Preço justo'];
+
 /** Código de indicação do cliente; também vale como cupom de desconto. */
 export const REFERRAL_CODE = 'ANTONIO10';
 
