@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -7,8 +8,8 @@ import { Chip, Footer, GoldButton, IconButton, Logo, Photo, Stars, T } from '@/c
 import { barbers, categories, reviews, services, shop, type Category } from '@/data/mock';
 import { photos } from '@/data/photos';
 import { freeSlots } from '@/lib/availability';
-import { brl, hhmm, sameDay, weekdayShort } from '@/lib/format';
-import { draftTotals, useStore } from '@/store';
+import { brl, hhmm, sameDay, timeAgo, weekdayShort } from '@/lib/format';
+import { busyList, clientLabel, draftTotals, DEMO_KEY, ratedAppointments, shortClient, useStore, type WaitEntry } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 const DAYS = 21;
@@ -21,7 +22,8 @@ export default function BarberScreen() {
   const barberId = id === 'qualquer' ? null : id;
   const barber = barbers.find((b) => b.id === barberId);
   const { top } = useSafeAreaInsets();
-  const { draft, appointments, favorites, setBarber, setDay, setSlot, toggleService, toggleFavorite, confirm } = useStore();
+  const { draft, appointments, blocks, accounts, account, waitlist, favorites, setBarber, setDay, setSlot, toggleService, toggleFavorite, confirm, joinWaitlist, leaveWaitlist } =
+    useStore();
   // abre na categoria do primeiro serviço já escolhido (ex.: vindo da tela Serviços)
   const [cat, setCat] = useState<Category>(() => services.find((x) => x.id === draft.serviceIds[0])?.category ?? 'Cabelo');
   const [tab, setTab] = useState<(typeof tabs)[number]>('Agendar');
@@ -33,8 +35,14 @@ export default function BarberScreen() {
 
   const totals = draftTotals(draft.serviceIds);
   const duration = totals.minutes || 30;
-  // ao remarcar, o horário antigo do cliente não bloqueia a agenda
-  const busy = appointments.filter((a) => a.id !== draft.rescheduleId);
+  // ao remarcar, o horário antigo do cliente não bloqueia a agenda; o passado não importa aqui
+  const [since] = useState(() => Date.now() - 86400000);
+  const busy = useMemo(() => {
+    return busyList(
+      appointments.filter((a) => a.id !== draft.rescheduleId && +new Date(a.start) > since),
+      blocks,
+    );
+  }, [appointments, blocks, draft.rescheduleId, since]);
   const ids = barbers.map((b) => b.id);
 
   const days = useMemo(() => {
@@ -63,6 +71,23 @@ export default function BarberScreen() {
     t.setHours(0, m, 0, 0);
     if (t > now) allSlots.push(m);
   }
+  const rated = ratedAppointments(appointments, barberId);
+  const baseCount = barber?.reviews ?? 1246;
+  const rating = {
+    count: baseCount + rated.length,
+    avg: ((barber?.rating ?? 4.9) * baseCount + rated.reduce((t, a) => t + a.rating!.stars, 0)) / (baseCount + rated.length),
+  };
+  const allReviews = [
+    ...rated.slice(0, 10).map((a) => ({
+      key: a.id,
+      who: shortClient(clientLabel(a.clientName, accounts)),
+      when: timeAgo(a.rating!.at),
+      stars: a.rating!.stars,
+      text: a.rating!.text,
+      tags: a.rating!.tags,
+    })),
+    ...reviews.map((r) => ({ key: r.who, ...r, tags: [] as string[] })),
+  ];
   const month = day.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const rescheduling = !!draft.rescheduleId;
   const ready = totals.list.length > 0 && draft.slot != null;
@@ -166,7 +191,9 @@ export default function BarberScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
                 {days.map((d) => {
                   const on = sameDay(d, day);
-                  const closed = free(d).length === 0;
+                  // fechado (domingo ou hoje já sem horário) não abre; lotado abre para a lista de espera
+                  const closed = d.getDay() === shop.closedWeekday || (sameDay(d, new Date()) && free(d).length === 0);
+                  const full = !closed && free(d).length === 0;
                   const inner = (
                     <>
                       <T v="medium" size={10} color={on ? colors.onGold : colors.muted} style={{ letterSpacing: 1 }}>
@@ -178,7 +205,7 @@ export default function BarberScreen() {
                     </>
                   );
                   return (
-                    <Pressable key={d.toISOString()} disabled={closed} onPress={() => setDay(d.toISOString())} style={closed && { opacity: 0.3 }}>
+                    <Pressable key={d.toISOString()} disabled={closed} onPress={() => setDay(d.toISOString())} style={closed ? { opacity: 0.3 } : full && !on && { opacity: 0.55 }}>
                       {on ? (
                         <LinearGradient colors={[colors.goldLight, colors.gold]} style={[s.day, { borderWidth: 0 }]}>
                           {inner}
@@ -217,6 +244,17 @@ export default function BarberScreen() {
                   })}
                 </View>
               )}
+
+              {/* Lista de espera */}
+              {!rescheduling && allSlots.length > 0 && (
+                <WaitlistCard
+                  full={freeToday.size === 0}
+                  barberName={barber?.short ?? null}
+                  entry={waitlist.find((w) => w.account === (account ?? DEMO_KEY) && w.barberId === barberId && sameDay(new Date(w.day), day))}
+                  onJoin={() => joinWaitlist(barberId, day.toISOString())}
+                  onLeave={leaveWaitlist}
+                />
+              )}
             </>
           )}
 
@@ -230,19 +268,20 @@ export default function BarberScreen() {
 
           {tab === 'Avaliações' && (
             <View>
+              {/* avaliações feitas no app entram junto com as de exemplo */}
               <View style={s.ratingBox}>
                 <T v="serif" size={44} color={colors.goldLight}>
-                  {(barber?.rating ?? 4.9).toFixed(1)}
+                  {rating.avg.toFixed(1)}
                 </T>
                 <View>
-                  <Stars value={barber?.rating ?? 4.9} size={16} />
+                  <Stars value={rating.avg} size={16} />
                   <T size={12} color={colors.muted} style={{ marginTop: 4 }}>
-                    {barber?.reviews ?? 1246} avaliações
+                    {rating.count} avaliações
                   </T>
                 </View>
               </View>
-              {reviews.map((r) => (
-                <View key={r.who} style={s.review}>
+              {allReviews.map((r) => (
+                <View key={r.key} style={s.review}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <T v="semibold" size={14}>
                       {r.who}
@@ -252,9 +291,16 @@ export default function BarberScreen() {
                     </T>
                   </View>
                   <Stars value={r.stars} />
-                  <T size={13} color="#BDBDBD" style={{ marginTop: 6, lineHeight: 19 }}>
-                    {r.text}
-                  </T>
+                  {!!r.text && (
+                    <T size={13} color="#BDBDBD" style={{ marginTop: 6, lineHeight: 19 }}>
+                      {r.text}
+                    </T>
+                  )}
+                  {r.tags.length > 0 && (
+                    <T size={11} color={colors.goldLight} style={{ marginTop: 4 }}>
+                      {r.tags.join(' · ')}
+                    </T>
+                  )}
                 </View>
               ))}
             </View>
@@ -277,7 +323,76 @@ export default function BarberScreen() {
   );
 }
 
+/** Lista de espera do dia escolhido: em destaque quando o dia está lotado. */
+function WaitlistCard({
+  full,
+  barberName,
+  entry,
+  onJoin,
+  onLeave,
+}: {
+  full: boolean;
+  barberName: string | null;
+  entry?: WaitEntry;
+  onJoin: () => void;
+  onLeave: (id: string) => void;
+}) {
+  if (entry) {
+    return (
+      <View style={[s.wait, s.waitOn]}>
+        <Feather name="bell" size={18} color={colors.gold} />
+        <View style={{ flex: 1 }}>
+          <T v="semibold" size={14}>
+            Você está na lista de espera
+          </T>
+          <T size={12} color={colors.muted} style={{ marginTop: 2, lineHeight: 17 }}>
+            Avisamos por notificação se abrir um horário neste dia.
+          </T>
+        </View>
+        <Pressable onPress={() => onLeave(entry.id)} hitSlop={8}>
+          <T v="semibold" size={12} color={colors.muted}>
+            Sair
+          </T>
+        </Pressable>
+      </View>
+    );
+  }
+  if (!full) {
+    return (
+      <Pressable onPress={onJoin} hitSlop={6} style={{ marginTop: 16, alignSelf: 'flex-start' }}>
+        <T size={12} color={colors.muted}>
+          Nenhum horário serve?{' '}
+          <T v="semibold" size={12} color={colors.gold}>
+            Entrar na lista de espera
+          </T>
+        </T>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={s.wait}>
+      <Feather name="clock" size={18} color={colors.gold} />
+      <View style={{ flex: 1 }}>
+        <T v="semibold" size={14}>
+          Dia lotado{barberName ? ` com ${barberName}` : ''}
+        </T>
+        <T size={12} color={colors.muted} style={{ marginTop: 2, lineHeight: 17 }}>
+          Entre na lista de espera e avisamos se alguém desmarcar.
+        </T>
+        <Pressable onPress={onJoin} style={({ pressed }) => [s.waitBtn, pressed && { opacity: 0.8 }]}>
+          <T v="semibold" size={13} color={colors.onGold}>
+            Avise-me se abrir vaga
+          </T>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
+  wait: { flexDirection: 'row', gap: 12, marginTop: 16, padding: 14, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
+  waitOn: { alignItems: 'center', backgroundColor: '#17140F' },
+  waitBtn: { alignSelf: 'flex-start', marginTop: 12, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 9 },
   heroBar: { position: 'absolute', left: space.gutter, right: space.gutter, flexDirection: 'row', justifyContent: 'space-between', zIndex: 2 },
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space.gutter, paddingTop: 24, paddingBottom: 30, minHeight: 600 },
   meta: { flexDirection: 'row', gap: 14, marginTop: 6, flexWrap: 'wrap' },

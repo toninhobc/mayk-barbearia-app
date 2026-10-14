@@ -45,7 +45,10 @@ export default function Sucesso() {
             { l: 'Data', v: dateLong(new Date(a.start)) },
             { l: 'Horário', v: timeOf(a.start) },
             { l: 'Barbeiro', v: b.short },
-            { l: 'Pagamento', v: `${brl(a.totalCents)} · ${methodName[a.method]}` },
+            {
+              l: 'Pagamento',
+              v: a.reward && a.totalCents === 0 ? 'Corte grátis · Clube Mayk' : `${brl(a.totalCents)} · ${methodName[a.method]}${a.reward ? ' · corte grátis aplicado' : ''}`,
+            },
           ].map((x) => (
             <View key={x.l} style={{ width: x.l === 'Data' || x.l === 'Pagamento' ? '100%' : '50%', marginTop: 14 }}>
               <T size={11} color={colors.muted}>

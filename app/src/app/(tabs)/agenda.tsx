@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppointmentRow } from '@/components/cards';
-import { Chip, GoldButton, T } from '@/components/ui';
+import { Chip, GoldButton, Stars, T } from '@/components/ui';
 import { mine, useStore, type Appointment } from '@/store';
 import { colors, radius, space } from '@/theme';
 
@@ -128,6 +128,16 @@ export default function Agenda() {
               a.status === 'concluido' ? (
                 <View style={s.actions}>
                   <Chip label="Repetir" icon="repeat" onPress={() => rebook(a, false)} />
+                  {a.rating ? (
+                    <Pressable onPress={() => router.push({ pathname: '/avaliar/[id]', params: { id: a.id } })} hitSlop={6} style={s.rated}>
+                      <Stars value={a.rating.stars} />
+                      <T size={11} color={colors.muted}>
+                        Sua avaliação
+                      </T>
+                    </Pressable>
+                  ) : (
+                    <Chip label="Avaliar" icon="star" onPress={() => router.push({ pathname: '/avaliar/[id]', params: { id: a.id } })} />
+                  )}
                 </View>
               ) : null
             }
@@ -144,5 +154,6 @@ const s = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line },
   confirm: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line },
   danger: { backgroundColor: colors.danger, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
+  rated: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto' },
   empty: { padding: 20, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, marginBottom: 12 },
 });

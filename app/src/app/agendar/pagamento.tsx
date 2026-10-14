@@ -8,7 +8,7 @@ import { CardForm, cardBrand, cardError, emptyCard, type CardInput } from '@/com
 import { barberOf } from '@/components/cards';
 import { Footer, GoldButton, Header, Kicker, T, type IconName } from '@/components/ui';
 import { brl, dateLong, hhmm } from '@/lib/format';
-import { draftTotals, useStore, withCoupon, type PayMethod } from '@/store';
+import { draftTotals, priceOf, rewardEligible, useStore, withCoupon, type PayMethod } from '@/store';
 import { colors, fonts, radius, space } from '@/theme';
 
 const methods: { id: PayMethod; title: string; sub: string; icon: IconName; tag?: string }[] = [
@@ -122,16 +122,20 @@ function FakeQR({ size = 180 }: { size?: number }) {
 }
 
 export default function Pagamento() {
-  const { draft, confirm, savedCard, saveCard } = useStore();
+  const { draft, confirm, savedCard, saveCard, rewards, setUseReward } = useStore();
   const [method, setMethod] = useState<PayMethod>('pix');
   const [card, setCard] = useState<CardInput>(emptyCard);
   const [useNewCard, setUseNewCard] = useState(false);
-  const newCard = method === 'cartao' && (!savedCard || useNewCard);
+  const totals = draftTotals(draft.serviceIds);
+  const price = priceOf(draft, rewards);
+  // corte grátis cobriu tudo: não há o que pagar
+  const free = price.total === 0 && totals.cents > 0;
+  const pay: PayMethod = free ? 'local' : method;
+  const newCard = pay === 'cartao' && (!savedCard || useNewCard);
+  const canReward = rewards > 0 && rewardEligible(draft.serviceIds);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [secs, setSecs] = useState(600);
-  const totals = draftTotals(draft.serviceIds);
-  const price = withCoupon(totals.cents, draft.coupon);
   const barber = draft.barberId ? barberOf(draft.barberId) : null;
   const pixCode = '00020126580014BR.GOV.BCB.PIX0136mayk-barbearia-demo5204000053039865802BR';
 
@@ -150,13 +154,13 @@ export default function Pagamento() {
       saveCard({ brand: cardBrand(n), last4: n.slice(-4) });
     }
     setTimeout(() => {
-      const appt = confirm(method);
+      const appt = confirm(pay);
       router.dismissAll();
       router.replace({ pathname: '/agendar/sucesso', params: { id: appt.id } });
-    }, method === 'local' ? 300 : 1200);
+    }, pay === 'local' ? 300 : 1200);
   };
 
-  const cta = method === 'pix' ? 'Já fiz o Pix' : method === 'cartao' ? `Pagar ${brl(price.total)}` : 'Confirmar agendamento';
+  const cta = pay === 'pix' ? 'Já fiz o Pix' : pay === 'cartao' ? `Pagar ${brl(price.total)}` : 'Confirmar agendamento';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -182,6 +186,16 @@ export default function Pagamento() {
               </T>
             </View>
           ))}
+          {price.reward > 0 && (
+            <View style={s.line}>
+              <T size={14} color={colors.success}>
+                Corte grátis (Clube Mayk)
+              </T>
+              <T size={14} color={colors.success}>
+                −{brl(price.reward)}
+              </T>
+            </View>
+          )}
           {price.discount > 0 && (
             <View style={s.line}>
               <T size={14} color={colors.success}>
@@ -197,9 +211,9 @@ export default function Pagamento() {
               Total
             </T>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-              {price.discount > 0 && (
+              {price.total < price.subtotal && (
                 <T size={13} color={colors.muted} style={{ textDecorationLine: 'line-through' }}>
-                  {brl(totals.cents)}
+                  {brl(price.subtotal)}
                 </T>
               )}
               <T v="semibold" size={16} color={colors.goldLight}>
@@ -209,15 +223,45 @@ export default function Pagamento() {
           </View>
         </View>
 
-        <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
-          Tem um cupom?
-        </T>
-        <Coupon />
+        {canReward && (
+          <Pressable onPress={() => setUseReward(!draft.useReward)} style={[s.reward, draft.useReward && s.rewardOn]}>
+            <View style={s.mIcon}>
+              <Feather name="gift" size={19} color={colors.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T v="semibold" size={15}>
+                Usar meu corte grátis
+              </T>
+              <T size={12} color={colors.muted} style={{ marginTop: 2 }}>
+                Clube Mayk · você tem {rewards} disponível{rewards > 1 ? 'is' : ''}
+              </T>
+            </View>
+            <View style={[s.check, draft.useReward && s.checkOn]}>{draft.useReward && <Feather name="check" size={14} color={colors.onGold} />}</View>
+          </Pressable>
+        )}
 
-        <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
-          Como você quer pagar?
-        </T>
-        {methods.map((m) => {
+        {!free && (
+          <>
+            <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
+              Tem um cupom?
+            </T>
+            <Coupon />
+          </>
+        )}
+
+        {free ? (
+          <View style={s.freeNote}>
+            <Feather name="check-circle" size={16} color={colors.success} />
+            <T size={13} style={{ flex: 1, lineHeight: 19 }}>
+              Seu corte grátis cobre tudo. É só confirmar.
+            </T>
+          </View>
+        ) : (
+          <T v="serif" size={22} style={{ marginTop: 26, marginBottom: 14 }}>
+            Como você quer pagar?
+          </T>
+        )}
+        {!free && methods.map((m) => {
           const on = method === m.id;
           return (
             <Pressable key={m.id} onPress={() => setMethod(m.id)} style={[s.method, on && s.methodOn]}>
@@ -246,7 +290,7 @@ export default function Pagamento() {
           );
         })}
 
-        {method === 'cartao' && savedCard && (
+        {pay === 'cartao' && savedCard && (
           <Pressable onPress={() => setUseNewCard(!useNewCard)} hitSlop={8} style={s.switchCard}>
             <T v="semibold" size={13} color={colors.gold}>
               {useNewCard ? `Usar ${savedCard.brand} •••• ${savedCard.last4}` : 'Usar outro cartão'}
@@ -255,7 +299,7 @@ export default function Pagamento() {
         )}
         {newCard && <CardForm value={card} onChange={setCard} />}
 
-        {method === 'pix' && (
+        {pay === 'pix' && (
           <View style={s.pix}>
             <View style={s.qrWrap}>
               <FakeQR />
@@ -296,7 +340,7 @@ export default function Pagamento() {
           <View style={s.busy}>
             <ActivityIndicator color={colors.gold} />
             <T v="medium" color={colors.goldLight}>
-              {method === 'pix' ? 'Confirmando seu Pix...' : 'Processando...'}
+              {pay === 'pix' ? 'Confirmando seu Pix...' : 'Processando...'}
             </T>
           </View>
         ) : (
@@ -323,6 +367,11 @@ const s = StyleSheet.create({
   coupon: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, paddingHorizontal: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
   couponOn: { borderColor: 'rgba(95,191,138,0.45)', backgroundColor: 'rgba(95,191,138,0.06)' },
   couponInput: { flex: 1, height: '100%', color: colors.text, fontFamily: fonts.semibold, fontSize: 15, letterSpacing: 1 },
+  reward: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginTop: 20, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
+  rewardOn: { borderColor: colors.gold, backgroundColor: '#17140F' },
+  check: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.dim, alignItems: 'center', justifyContent: 'center' },
+  checkOn: { backgroundColor: colors.gold, borderColor: colors.gold },
+  freeNote: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(95,191,138,0.45)', backgroundColor: 'rgba(95,191,138,0.06)' },
   switchCard: { alignSelf: 'flex-start', marginTop: -2, marginBottom: 12, marginLeft: 4 },
   secure: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, marginBottom: 8 },
   busy: { flex: 1, height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
