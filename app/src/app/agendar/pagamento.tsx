@@ -84,6 +84,17 @@ function Coupon() {
   );
 }
 
+/** Quadrado de canto do QR Code (posição x, y em células de tamanho c). */
+function QrFinder({ x, y, c }: { x: number; y: number; c: number }) {
+  return (
+    <>
+      <Rect x={x * c} y={y * c} width={7 * c} height={7 * c} fill="#111" />
+      <Rect x={(x + 1) * c} y={(y + 1) * c} width={5 * c} height={5 * c} fill="#fff" />
+      <Rect x={(x + 2) * c} y={(y + 2) * c} width={3 * c} height={3 * c} fill="#111" />
+    </>
+  );
+}
+
 /** QR Code ilustrativo (na versão real vem do Mercado Pago). */
 function FakeQR({ size = 180 }: { size?: number }) {
   const n = 25;
@@ -101,22 +112,15 @@ function FakeQR({ size = 180 }: { size?: number }) {
     return out;
   }, []);
   const c = size / n;
-  const Finder = ({ x, y }: { x: number; y: number }) => (
-    <>
-      <Rect x={x * c} y={y * c} width={7 * c} height={7 * c} fill="#111" />
-      <Rect x={(x + 1) * c} y={(y + 1) * c} width={5 * c} height={5 * c} fill="#fff" />
-      <Rect x={(x + 2) * c} y={(y + 2) * c} width={3 * c} height={3 * c} fill="#111" />
-    </>
-  );
   return (
     <Svg width={size} height={size}>
       <Rect width={size} height={size} fill="#fff" />
       {cells.map(([x, y]) => (
         <Rect key={`${x}-${y}`} x={x * c} y={y * c} width={c} height={c} fill="#111" />
       ))}
-      <Finder x={0} y={0} />
-      <Finder x={n - 7} y={0} />
-      <Finder x={0} y={n - 7} />
+      <QrFinder x={0} y={0} c={c} />
+      <QrFinder x={n - 7} y={0} c={c} />
+      <QrFinder x={0} y={n - 7} c={c} />
     </Svg>
   );
 }

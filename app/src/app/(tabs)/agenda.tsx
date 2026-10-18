@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppointmentRow } from '@/components/cards';
@@ -14,13 +14,19 @@ export default function Agenda() {
   const { account, appointments, cancel, startRebook, resetDraft, notifications, toggleNotifications } = useStore();
   const [tab, setTab] = useState<'proximos' | 'historico'>('proximos');
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  // hora atual, lida uma vez e atualizada a cada minuto (não durante o desenho da tela)
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const list = mine(appointments, account);
   const upcoming = list
-    .filter((a) => a.status === 'agendado' && new Date(a.start) > new Date())
+    .filter((a) => a.status === 'agendado' && +new Date(a.start) > now)
     .sort((a, b) => +new Date(a.start) - +new Date(b.start));
   const history = list
-    .filter((a) => !(a.status === 'agendado' && new Date(a.start) > new Date()))
+    .filter((a) => !(a.status === 'agendado' && +new Date(a.start) > now))
     .sort((a, b) => +new Date(b.start) - +new Date(a.start));
 
   const rebook = (a: Appointment, reschedule: boolean) => {
@@ -28,7 +34,7 @@ export default function Agenda() {
     router.push({ pathname: '/barbeiro/[id]', params: { id: a.barberId } });
   };
 
-  const canCancel = (a: Appointment) => +new Date(a.start) - Date.now() > CANCEL_LIMIT_H * 3600_000;
+  const canCancel = (a: Appointment) => +new Date(a.start) - now > CANCEL_LIMIT_H * 3600_000;
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
