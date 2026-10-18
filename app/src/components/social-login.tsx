@@ -20,21 +20,6 @@ export function SocialLogin({ onDone, caption = 'ou', note }: { onDone: (p: Prov
     }, 800);
   };
 
-  const Btn = ({ p, label, icon, apple }: { p: Provider; label: string; icon: 'logo-apple' | 'logo-google'; apple?: boolean }) => {
-    const fg = apple ? '#000' : colors.text;
-    return (
-      <Pressable
-        onPress={() => press(p)}
-        disabled={!!busy}
-        style={({ pressed }) => [s.btn, apple ? s.apple : s.google, (pressed || (busy && busy !== p)) && { opacity: 0.6 }]}>
-        {busy === p ? <ActivityIndicator color={fg} /> : <Ionicons name={icon} size={19} color={fg} />}
-        <T v="semibold" size={15} color={fg}>
-          {label}
-        </T>
-      </Pressable>
-    );
-  };
-
   return (
     <View>
       <View style={s.divider}>
@@ -45,14 +30,42 @@ export function SocialLogin({ onDone, caption = 'ou', note }: { onDone: (p: Prov
         <View style={s.line} />
       </View>
       <View style={{ gap: 10 }}>
-        <Btn p="apple" label="Continuar com Apple" icon="logo-apple" apple />
-        <Btn p="google" label="Continuar com Google" icon="logo-google" />
+        <SocialButton p="apple" label="Continuar com Apple" icon="logo-apple" busy={busy} onPress={press} />
+        <SocialButton p="google" label="Continuar com Google" icon="logo-google" busy={busy} onPress={press} />
       </View>
       {note}
       <T size={11} color={colors.dim} style={{ textAlign: 'center', marginTop: 10 }}>
         Simulado nesta demonstração
       </T>
     </View>
+  );
+}
+
+function SocialButton({
+  p,
+  label,
+  icon,
+  busy,
+  onPress,
+}: {
+  p: Provider;
+  label: string;
+  icon: 'logo-apple' | 'logo-google';
+  busy: Provider | null;
+  onPress: (p: Provider) => void;
+}) {
+  const apple = p === 'apple';
+  const fg = apple ? '#000' : colors.text;
+  return (
+    <Pressable
+      onPress={() => onPress(p)}
+      disabled={!!busy}
+      style={({ pressed }) => [s.btn, apple ? s.apple : s.google, (pressed || (busy && busy !== p)) && { opacity: 0.6 }]}>
+      {busy === p ? <ActivityIndicator color={fg} /> : <Ionicons name={icon} size={19} color={fg} />}
+      <T v="semibold" size={15} color={fg}>
+        {label}
+      </T>
+    </Pressable>
   );
 }
 
