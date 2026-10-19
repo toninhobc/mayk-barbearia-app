@@ -5,15 +5,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, Footer, GoldButton, IconButton, Logo, Photo, Stars, T } from '@/components/ui';
-import { barbers, categories, reviews, services, shop, type Category } from '@/data/mock';
+import { barbers, categories, hoursOn, reviews, services, unitOf, type Category } from '@/data/mock';
 import { photos } from '@/data/photos';
-import { freeSlots } from '@/lib/availability';
+import { barberHours, freeSlots, slotsWithin } from '@/lib/availability';
 import { brl, hhmm, sameDay, timeAgo, weekdayShort } from '@/lib/format';
 import { busyList, clientLabel, draftTotals, DEMO_KEY, ratedAppointments, shortClient, useStore, type WaitEntry } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 const DAYS = 21;
-const STEP = 30;
 const HERO = 330;
 const tabs = ['Agendar', 'Portfólio', 'Avaliações'] as const;
 
@@ -22,14 +21,18 @@ export default function BarberScreen() {
   const barberId = id === 'qualquer' ? null : id;
   const barber = barbers.find((b) => b.id === barberId);
   const { top } = useSafeAreaInsets();
-  const { draft, appointments, blocks, accounts, account, waitlist, favorites, setBarber, setDay, setSlot, toggleService, toggleFavorite, confirm, joinWaitlist, leaveWaitlist } =
+  const { draft, appointments, blocks, accounts, account, waitlist, favorites, setBarber, setDay, setSlot, toggleService, toggleFavorite, confirm, joinWaitlist, leaveWaitlist, unitId, setUnit } =
     useStore();
   // abre na categoria do primeiro serviço já escolhido (ex.: vindo da tela Serviços)
   const [cat, setCat] = useState<Category>(() => services.find((x) => x.id === draft.serviceIds[0])?.category ?? 'Cabelo');
   const [tab, setTab] = useState<(typeof tabs)[number]>('Agendar');
 
   useEffect(() => {
-    if (draft.barberId !== barberId) setBarber(barberId);
+    // barbeiro de outra unidade (ex.: favorito): a unidade do agendamento passa a ser a dele
+    if (barber && barber.unitId !== unitId) {
+      setUnit(barber.unitId);
+      setBarber(barberId);
+    } else if (draft.barberId !== barberId) setBarber(barberId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barberId]);
 
@@ -43,7 +46,9 @@ export default function BarberScreen() {
       blocks,
     );
   }, [appointments, blocks, draft.rescheduleId, since]);
-  const ids = barbers.map((b) => b.id);
+  const unit = unitOf(barber?.unitId ?? unitId);
+  const ids = barbers.filter((b) => b.unitId === unit.id).map((b) => b.id);
+  const hoursOf = (d: Date) => (barberId ? barberHours(barberId, d) : hoursOn(unit.id, d));
 
   const days = useMemo(() => {
     const base = new Date();
@@ -65,12 +70,11 @@ export default function BarberScreen() {
   const day = draft.day ? new Date(draft.day) : days[0];
   const freeToday = new Set(free(day));
   const now = new Date();
-  const allSlots: number[] = [];
-  for (let m = shop.openMinutes; m + duration <= shop.closeMinutes; m += STEP) {
+  const allSlots = slotsWithin(hoursOf(day), duration).filter((m) => {
     const t = new Date(day);
     t.setHours(0, m, 0, 0);
-    if (t > now) allSlots.push(m);
-  }
+    return t > now;
+  });
   const rated = ratedAppointments(appointments, barberId);
   const baseCount = barber?.reviews ?? 1246;
   const rating = {
@@ -112,7 +116,7 @@ export default function BarberScreen() {
             <Logo size={150} ring={false} />
           </View>
         )}
-        <LinearGradient colors={['rgba(0,0,0,0.45)', 'transparent', 'rgba(10,10,10,0.85)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={['rgba(0,0,0,0.45)', 'transparent', 'rgba(21,16,12,0.85)']} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       </View>
       <View style={[s.heroBar, { top: top + 8 }]}>
         <IconButton glass icon="chevron-left" onPress={() => router.back()} />
@@ -123,7 +127,7 @@ export default function BarberScreen() {
 
       <ScrollView contentContainerStyle={{ paddingTop: HERO - 40 }} showsVerticalScrollIndicator={false}>
         <View style={s.sheet}>
-          <T v="serif" size={28}>
+          <T v="display" size={24}>
             {barber ? barber.name.split(' ').slice(0, 2).join(' ') : 'Sem preferência'}
           </T>
           <View style={s.meta}>
@@ -135,6 +139,12 @@ export default function BarberScreen() {
             </T>
             <T size={13} color={colors.muted}>
               {barber ? barber.specialties.join(' · ') : 'Primeiro barbeiro livre'}
+            </T>
+          </View>
+          <View style={s.unit}>
+            <Feather name="map-pin" size={13} color={colors.gold} />
+            <T size={13} color={colors.goldLight}>
+              Dom Cabral {unit.name}
             </T>
           </View>
 
@@ -191,8 +201,8 @@ export default function BarberScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
                 {days.map((d) => {
                   const on = sameDay(d, day);
-                  // fechado (domingo ou hoje já sem horário) não abre; lotado abre para a lista de espera
-                  const closed = d.getDay() === shop.closedWeekday || (sameDay(d, new Date()) && free(d).length === 0);
+                  // fechado (unidade sem expediente ou hoje já sem horário) não abre; lotado abre para a lista de espera
+                  const closed = !hoursOf(d) || (sameDay(d, new Date()) && free(d).length === 0);
                   const full = !closed && free(d).length === 0;
                   const inner = (
                     <>
@@ -235,7 +245,7 @@ export default function BarberScreen() {
                         <T
                           v={on ? 'semibold' : 'regular'}
                           size={13}
-                          color={on ? colors.goldLight : ok ? '#D2D2D2' : colors.dim}
+                          color={on ? colors.goldLight : ok ? '#E6DAC3' : colors.dim}
                           style={!ok && { textDecorationLine: 'line-through' }}>
                           {hhmm(m)}
                         </T>
@@ -292,7 +302,7 @@ export default function BarberScreen() {
                   </View>
                   <Stars value={r.stars} />
                   {!!r.text && (
-                    <T size={13} color="#BDBDBD" style={{ marginTop: 6, lineHeight: 19 }}>
+                    <T size={13} color="#CDBFA8" style={{ marginTop: 6, lineHeight: 19 }}>
                       {r.text}
                     </T>
                   )}
@@ -390,16 +400,17 @@ function WaitlistCard({
 }
 
 const s = StyleSheet.create({
-  wait: { flexDirection: 'row', gap: 12, marginTop: 16, padding: 14, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
-  waitOn: { alignItems: 'center', backgroundColor: '#17140F' },
+  wait: { flexDirection: 'row', gap: 12, marginTop: 16, padding: 14, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(190,154,41,0.35)' },
+  waitOn: { alignItems: 'center', backgroundColor: '#2A2112' },
   waitBtn: { alignSelf: 'flex-start', marginTop: 12, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 9 },
   heroBar: { position: 'absolute', left: space.gutter, right: space.gutter, flexDirection: 'row', justifyContent: 'space-between', zIndex: 2 },
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: space.gutter, paddingTop: 24, paddingBottom: 30, minHeight: 600 },
   meta: { flexDirection: 'row', gap: 14, marginTop: 6, flexWrap: 'wrap' },
+  unit: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   tabs: { flexDirection: 'row', marginTop: 18, borderBottomWidth: 1, borderBottomColor: colors.line },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 11 },
   tabOn: { borderBottomWidth: 2, borderBottomColor: colors.gold, marginBottom: -1 },
-  notice: { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: 'rgba(200,161,90,0.1)', borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
+  notice: { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: 'rgba(190,154,41,0.1)', borderWidth: 1, borderColor: 'rgba(190,154,41,0.35)' },
   label: { marginTop: 18, marginBottom: 12 },
   cat: { paddingBottom: 6, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   catOn: { borderBottomColor: colors.gold },
@@ -407,7 +418,7 @@ const s = StyleSheet.create({
   day: { width: 52, height: 70, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', gap: 4 },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   time: { width: '23.3%', height: 40, borderRadius: 12, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  timeOn: { borderColor: colors.gold, backgroundColor: 'rgba(200,161,90,0.1)' },
+  timeOn: { borderColor: colors.gold, backgroundColor: 'rgba(190,154,41,0.1)' },
   portfolio: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 },
   pf: { width: '31.9%', aspectRatio: 1 },
   ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 18, marginBottom: 8 },

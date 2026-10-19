@@ -11,7 +11,7 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar" />
         <View style={s.card}>
           <View style={s.head}>
-            <T v="serif" size={24} style={{ flex: 1 }}>
+            <T v="display" size={20} style={{ flex: 1 }}>
               {title}
             </T>
             <IconButton icon="x" onPress={onClose} />

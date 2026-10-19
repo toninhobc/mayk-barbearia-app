@@ -20,9 +20,9 @@ const docs: Record<Doc, { title: string; body: string[] }> = {
   termos: {
     title: 'Termos de uso',
     body: [
-      'Ao criar uma conta, você pode agendar, remarcar e cancelar horários na Mayk Barbearia pelo aplicativo.',
+      'Ao criar uma conta, você pode agendar, remarcar e cancelar horários na Dom Cabral Barbearia pelo aplicativo.',
       'Cancelamentos devem ser feitos com pelo menos 2 horas de antecedência. Faltas sem aviso podem limitar novos agendamentos.',
-      'Pontos do Clube Mayk não têm valor em dinheiro e valem apenas na barbearia.',
+      'Pontos do Clube Dom Cabral não têm valor em dinheiro e valem apenas na barbearia.',
       'Texto de demonstração: a versão final será definida com a barbearia.',
     ],
   },
@@ -79,7 +79,7 @@ export default function Cadastro() {
     }
     const mail = errors.email ? `cliente@${p === 'apple' ? 'icloud' : 'gmail'}.com` : email.trim().toLowerCase();
     register({
-      name: errors.name ? 'Cliente Mayk' : name.trim().replace(/\s+/g, ' '),
+      name: errors.name ? 'Cliente Dom Cabral' : name.trim().replace(/\s+/g, ' '),
       phone: errors.phone ? '' : phone,
       email: mail,
       // sem celular válido (ou já usado), a conta é identificada pelo e-mail do provedor
@@ -99,7 +99,7 @@ export default function Cadastro() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: space.gutter, paddingTop: 16, paddingBottom: bottom + 24 }}>
-        <T v="serif" size={32}>
+        <T v="display" size={26}>
           {step === 'form' ? 'Criar conta' : 'Confirme seu celular'}
         </T>
 

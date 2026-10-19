@@ -2,7 +2,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { barbers, services, type Barber, type Service } from '@/data/mock';
+import { barbers, services, unitOf, type Barber, type Service } from '@/data/mock';
 import { photos } from '@/data/photos';
 import { brl, hhmm } from '@/lib/format';
 import type { Appointment } from '@/store';
@@ -29,7 +29,7 @@ export const shortDate = (iso: string) => {
 export function NextAppointmentCard({ a, actions }: { a: Appointment; actions?: ReactNode }) {
   const b = barberOf(a.barberId);
   return (
-    <LinearGradient colors={['#1D1A15', '#121212']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.next}>
+    <LinearGradient colors={['#2A2016', '#1A140F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.next}>
       <Kicker>Próximo horário</Kicker>
       <View style={s.nextRow}>
         <Photo source={photos[b.id]} label="" radius={14} style={{ width: 48, height: 48 }} />
@@ -38,7 +38,7 @@ export function NextAppointmentCard({ a, actions }: { a: Appointment; actions?: 
             {apptTitle(a)}
           </T>
           <T size={13} color={colors.muted} style={{ marginTop: 3 }}>
-            com {b.short}
+            com {b.short} · {unitOf(b.unitId).name}
           </T>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -79,15 +79,15 @@ export function BarberCard({ b, selected, onPress, width = 104 }: { b: Barber; s
 /* ---------- Serviço (linha) ---------- */
 
 const icons: Record<Service['category'], keyof typeof MaterialCommunityIcons.glyphMap> = {
-  Barba: 'razor-double-edge',
   Cabelo: 'content-cut',
-  Estética: 'face-man-shimmer-outline',
-  'Tratamento capilar': 'hair-dryer-outline',
+  Barba: 'razor-double-edge',
+  Tratamentos: 'face-man-shimmer-outline',
+  Pacotes: 'star-four-points-outline',
 };
 
 export function ServiceRow({ sv, on, onPress }: { sv: Service; on?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[s.svc, on && { borderColor: colors.gold, backgroundColor: '#17140F' }]}>
+    <Pressable onPress={onPress} style={[s.svc, on && { borderColor: colors.gold, backgroundColor: '#2A2112' }]}>
       <View style={s.svcIcon}>
         <MaterialCommunityIcons name={icons[sv.category]} size={22} color={colors.gold} />
       </View>
@@ -132,7 +132,7 @@ export function AppointmentRow({ a, footer }: { a: Appointment; footer?: ReactNo
             {apptTitle(a)}
           </T>
           <T size={12} color={colors.muted} style={{ marginTop: 3 }}>
-            {shortDate(a.start)} · {timeOf(a.start)} · {b.short}
+            {shortDate(a.start)} · {timeOf(a.start)} · {b.short} · {unitOf(b.unitId).name}
           </T>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -150,7 +150,7 @@ export function AppointmentRow({ a, footer }: { a: Appointment; footer?: ReactNo
 }
 
 const s = StyleSheet.create({
-  next: { borderRadius: 24, padding: 18, borderWidth: 1, borderColor: 'rgba(200,161,90,0.28)' },
+  next: { borderRadius: 24, padding: 18, borderWidth: 1, borderColor: 'rgba(190,154,41,0.28)' },
   nextRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   nextActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   barberPhoto: { height: 126, borderRadius: 20, borderWidth: 2, borderColor: 'transparent', padding: 0, overflow: 'hidden' },

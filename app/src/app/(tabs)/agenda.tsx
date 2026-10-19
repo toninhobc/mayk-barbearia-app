@@ -38,7 +38,7 @@ export default function Agenda() {
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
-      <T v="serif" size={32}>
+      <T v="display" size={26}>
         Meus horários
       </T>
 

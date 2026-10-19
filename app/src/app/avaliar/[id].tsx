@@ -52,7 +52,7 @@ export default function Avaliar() {
           </View>
         </View>
 
-        <T v="serif" size={26} style={{ textAlign: 'center', marginTop: 28 }}>
+        <T v="display" size={22} style={{ textAlign: 'center', marginTop: 28 }}>
           {done ? 'Obrigado pela avaliação!' : `Como foi com ${b.short}?`}
         </T>
 
@@ -77,7 +77,7 @@ export default function Avaliar() {
               </T>
             )}
             {!!a.rating!.text && (
-              <T size={14} color="#CFCFCF" style={{ textAlign: 'center', lineHeight: 21 }}>
+              <T size={14} color="#E6DAC3" style={{ textAlign: 'center', lineHeight: 21 }}>
                 “{a.rating!.text}”
               </T>
             )}

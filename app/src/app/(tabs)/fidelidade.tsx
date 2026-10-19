@@ -35,15 +35,15 @@ export default function Fidelidade() {
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={{ paddingTop: top + 14, paddingHorizontal: space.gutter, paddingBottom: 130 }}>
-      <T v="serif" size={32}>
-        Clube Mayk
+      <T v="display" size={26}>
+        Clube Dom Cabral
       </T>
       <T size={13} color={colors.muted} style={{ marginTop: 6 }}>
         Cada visita conta. Junte selos e ganhe recompensas.
       </T>
 
       {rewards > 0 && (
-        <LinearGradient colors={['#3A2F1C', '#1B1710']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.reward}>
+        <LinearGradient colors={['#4A3818', '#241B11']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.reward}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={s.rewardIcon}>
               <Feather name="gift" size={20} color={colors.onGold} />
@@ -62,7 +62,7 @@ export default function Fidelidade() {
       )}
 
       {/* Cartão de fidelidade */}
-      <LinearGradient colors={['#2A2318', '#141414']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.card}>
+      <LinearGradient colors={['#3A2C17', '#1F1812']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.card}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View>
             <Kicker>Cartão fidelidade</Kicker>
@@ -141,11 +141,11 @@ export default function Fidelidade() {
 const s = StyleSheet.create({
   reward: { marginTop: 18, padding: 18, borderRadius: 24, borderWidth: 1, borderColor: colors.gold },
   rewardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
-  card: { marginTop: 22, borderRadius: 26, padding: 22, borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
+  card: { marginTop: 22, borderRadius: 26, padding: 22, borderWidth: 1, borderColor: 'rgba(190,154,41,0.35)' },
   stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 },
   stamp: { width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: colors.line, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
   stampOn: { backgroundColor: colors.gold, borderColor: colors.gold },
   perk: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, marginBottom: 10 },
   perkIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.goldDark, alignItems: 'center', justifyContent: 'center' },
-  code: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.gold, backgroundColor: 'rgba(200,161,90,0.06)' },
+  code: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.gold, backgroundColor: 'rgba(190,154,41,0.06)' },
 });

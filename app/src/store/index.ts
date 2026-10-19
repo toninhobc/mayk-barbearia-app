@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { barbers, coupons, guests, REFERRAL_CODE, services, shop } from '@/data/mock';
-import { hasConflict, pickBarber } from '@/lib/availability';
+import { barbers, coupons, guests, REFERRAL_CODE, services, units } from '@/data/mock';
+import { barberHours, hasConflict, pickBarber } from '@/lib/availability';
 
 /** `falta` = o cliente não compareceu (marcado pela equipe). */
 export type Status = 'agendado' | 'concluido' | 'cancelado' | 'falta';
@@ -21,7 +21,7 @@ export type Appointment = {
   method: PayMethod;
   /** Chave da conta do cliente (celular) ou de um cliente fictício (g1, g2...). */
   clientName: string;
-  /** Usou o corte grátis do Clube Mayk. */
+  /** Usou o corte grátis do Clube Dom Cabral. */
   reward?: boolean;
   rating?: Rating;
 };
@@ -58,7 +58,7 @@ type Draft = {
   slot: number | null; // minutos desde 00:00
   rescheduleId: string | null; // agendamento sendo remarcado
   coupon: string | null; // código já validado
-  useReward: boolean; // usar o corte grátis do Clube Mayk
+  useReward: boolean; // usar o corte grátis do Clube Dom Cabral
 };
 
 export type Me = { name: string; phone: string; email: string; photo: string | null }; // photo = endereço local da imagem
@@ -67,6 +67,8 @@ export type Provider = 'apple' | 'google';
 /** Dados de cada conta. Os da conta logada ficam "soltos" no store (me, points...) para as telas lerem direto. */
 type Profile = {
   me: Me;
+  /** Unidade escolhida para agendar (a Dom Cabral tem 9). */
+  unitId: string;
   points: number;
   /** Cortes grátis liberados e ainda não usados. */
   rewards: number;
@@ -115,6 +117,7 @@ type State = Profile & {
   saveCard: (card: SavedCard) => void;
   removeCard: () => void;
   setPhoto: (uri: string | null) => void;
+  setUnit: (unitId: string) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   removeNotice: (id: string) => void;
@@ -158,10 +161,10 @@ const svc = (id: string) => services.find((s) => s.id === id)!;
 
 const mine0: Appointment[] = [
   // do cliente de demonstração
-  { id: 'a0', serviceIds: ['s3'], barberId: 'b5', start: at(2, 15, 30), minutes: 70, totalCents: 14500, status: 'agendado', paid: true, method: 'pix', clientName: ME },
-  { id: 'a1', serviceIds: ['s1'], barberId: 'b5', start: at(-14, 15), minutes: 40, totalCents: 9000, status: 'concluido', paid: true, method: 'pix', clientName: ME },
-  { id: 'a2', serviceIds: ['s3'], barberId: 'b5', start: at(-45, 10), minutes: 70, totalCents: 14500, status: 'concluido', paid: true, method: 'cartao', clientName: ME, rating: { stars: 5, tags: ['Capricho'], text: 'Corte impecável, como sempre.', at: at(-45, 12) } },
-  { id: 'a5', serviceIds: ['s2'], barberId: 'b3', start: at(-80, 18), minutes: 30, totalCents: 7000, status: 'concluido', paid: true, method: 'local', clientName: ME },
+  { id: 'a0', serviceIds: ['s3'], barberId: 'b5', start: at(2, 14), minutes: 70, totalCents: 14000, status: 'agendado', paid: true, method: 'pix', clientName: ME },
+  { id: 'a1', serviceIds: ['s1'], barberId: 'b5', start: at(-14, 15), minutes: 40, totalCents: 8500, status: 'concluido', paid: true, method: 'pix', clientName: ME },
+  { id: 'a2', serviceIds: ['s3'], barberId: 'b5', start: at(-45, 10), minutes: 70, totalCents: 14000, status: 'concluido', paid: true, method: 'cartao', clientName: ME, rating: { stars: 5, tags: ['Capricho'], text: 'Corte impecável, como sempre.', at: at(-45, 12) } },
+  { id: 'a5', serviceIds: ['s2'], barberId: 'b6', start: at(-80, 11), minutes: 30, totalCents: 6500, status: 'concluido', paid: true, method: 'local', clientName: ME },
 ];
 
 /** Gerador pseudoaleatório com semente fixa: a agenda de exemplo é sempre a mesma. */
@@ -190,17 +193,18 @@ export const HISTORY_START = (() => {
 
 /**
  * Agenda da barbearia desde HISTORY_START até os próximos 7 dias, para o painel ter números reais.
- * O primeiro dia útil a partir de amanhã fica lotado com o Luiz Felipe (demonstra a lista de espera).
+ * Cada barbeiro segue o horário da sua unidade. Amanhã fica lotado com o Bruno (Plaza Norte) para
+ * demonstrar a lista de espera.
  */
 const buildSeed = (): Appointment[] => {
   const r = rng(42);
   const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
   const now = Date.now();
   const list: Appointment[] = [...mine0];
-  const menu = ['s1', 's1', 's1', 's3', 's3', 's3', 's2', 's2', 's7', 's5', 's10', 's20', 's15', 's4', 's6', 's8'];
+  const menu = ['s1', 's1', 's1', 's3', 's3', 's3', 's2', 's2', 's4', 's7', 's5', 's10', 's9', 's6', 's8'];
   const guestKeys = Object.keys(guests);
   let fullDay = 1;
-  while (new Date(at(fullDay, 12)).getDay() === shop.closedWeekday) fullDay++;
+  while (!barberHours('b5', new Date(at(fullDay, 12)))) fullDay++;
   let n = 0;
   // índice barbeiro|dia: com milhares de horários, procurar conflito na lista inteira fica lento
   const byDay = new Map<string, Appointment[]>();
@@ -213,7 +217,9 @@ const buildSeed = (): Appointment[] => {
 
   const add = (barberId: string, start: Date, serviceId: string, booked = false) => {
     const s = svc(serviceId);
-    if (start.getHours() * 60 + start.getMinutes() + s.minutes > shop.closeMinutes) return false;
+    const hrs = barberHours(barberId, start);
+    const m = start.getHours() * 60 + start.getMinutes();
+    if (!hrs || m < hrs[0] || m + s.minutes > hrs[1]) return false;
     if (hasConflict(barberId, start, s.minutes, dayList(barberId, start))) return false;
     const past = start.getTime() + s.minutes * 60000 < now;
     const status: Status = past ? (r() < 0.06 ? 'falta' : 'concluido') : !booked && r() < 0.04 ? 'cancelado' : 'agendado';
@@ -243,23 +249,24 @@ const buildSeed = (): Appointment[] => {
   const firstDay = Math.round((HISTORY_START.getTime() - new Date(at(0, 0)).getTime()) / 86400000);
   for (let d = firstDay; d <= 7; d++) {
     const day = new Date(at(d, 0));
-    if (day.getDay() === shop.closedWeekday) continue;
     for (const b of barbers) {
+      const hrs = barberHours(b.id, day);
+      if (!hrs) continue;
       // os horários do cliente de demonstração também contam
       let placed = dayList(b.id, day).length;
       if (d === fullDay && b.id === 'b5') {
         // dia lotado: encaixa cortes um atrás do outro
-        for (let m = shop.openMinutes; m < shop.closeMinutes; m += 10) {
+        for (let m = hrs[0]; m < hrs[1]; m += 10) {
           const t = new Date(day);
           t.setHours(0, m, 0, 0);
           // se o serviço sorteado não couber, tenta os curtos para não sobrar brecha
-          for (const id of [pick(['s1', 's3', 's1', 's2']), 's2', 's15', 's7']) if (add(b.id, t, id, true)) break;
+          for (const id of [pick(['s1', 's3', 's1', 's2']), 's2', 's9', 's7']) if (add(b.id, t, id, true)) break;
         }
         continue;
       }
-      const count = 3 + Math.floor(r() * 4);
+      const count = 3 + Math.floor(r() * 3);
       for (let i = 0; i < count * 3 && placed < count; i++) {
-        const slot = shop.openMinutes + Math.floor(r() * ((shop.closeMinutes - shop.openMinutes) / 30)) * 30;
+        const slot = hrs[0] + Math.floor(r() * ((hrs[1] - hrs[0]) / 30)) * 30;
         const t = new Date(day);
         t.setHours(0, slot, 0, 0);
         if (add(b.id, t, pick(menu))) placed++;
@@ -295,7 +302,7 @@ const seedInbox = (): Notice[] => {
   return [
     { id: 'n1', kind: 'lembrete', title: 'Seu horário está chegando', body: `${names(next.serviceIds)} com ${shortName(next.barberId)}, ${when(next.start)}.`, at: ago(1), read: false, href: '/agenda' },
     { id: 'n2', kind: 'pagamento', title: 'Pagamento confirmado', body: `Recebemos seu Pix de ${brl(next.totalCents)}.`, at: ago(5), read: false, href: '/perfil' },
-    { id: 'n3', kind: 'fidelidade', title: 'Você está perto do corte grátis', body: `Falta ${LOYALTY_GOAL - DEMO_POINTS} atendimento para completar seu cartão do Clube Mayk.`, at: ago(26), read: false, href: '/fidelidade' },
+    { id: 'n3', kind: 'fidelidade', title: 'Você está perto do corte grátis', body: `Falta ${LOYALTY_GOAL - DEMO_POINTS} atendimento para completar seu cartão do Clube Dom Cabral.`, at: ago(26), read: false, href: '/fidelidade' },
     { id: 'n4', kind: 'promo', title: '10% de desconto para você', body: `Use o cupom ${REFERRAL_CODE} no pagamento do seu próximo horário.`, at: ago(50), read: true, href: '/servicos' },
     { id: 'n5', kind: 'avaliacao', title: 'Como foi seu último atendimento?', body: `Conte para a gente como foi com ${shortName(last.barberId)}.`, at: ago(24 * 13), read: true, href: `/avaliar/${last.id}` },
   ];
@@ -367,6 +374,7 @@ const demoProfile: Profile = {
   me: { name: 'Antonio Barros Coelho', phone: '(61) 98225-0725', email: 'antoniobc2507@gmail.com', photo: null },
   points: DEMO_POINTS,
   rewards: 0,
+  unitId: 'plaza',
   favorites: ['b5'],
   birthday: null,
   notifications: true,
@@ -376,12 +384,13 @@ const demoProfile: Profile = {
 
 /** Caixa de entrada de uma conta recém-criada. */
 const welcomeInbox = (name: string): Notice[] => [
-  { id: 'w1', kind: 'promo', title: `Bem-vindo, ${name.split(' ')[0]}!`, body: 'Sua conta na Mayk Barbearia está pronta. Agende seu primeiro horário.', at: new Date().toISOString(), read: false, href: '/servicos' },
+  { id: 'w1', kind: 'promo', title: `Bem-vindo, ${name.split(' ')[0]}!`, body: 'Sua conta na Dom Cabral Barbearia está pronta. Agende seu primeiro horário.', at: new Date().toISOString(), read: false, href: '/servicos' },
   { id: 'w2', kind: 'promo', title: '10% de desconto no primeiro corte', body: `Use o cupom ${REFERRAL_CODE} no pagamento.`, at: new Date().toISOString(), read: false, href: '/servicos' },
 ];
 
 const profileOf = (s: State): Profile => ({
   me: s.me,
+  unitId: s.unitId,
   points: s.points,
   rewards: s.rewards,
   favorites: s.favorites,
@@ -455,6 +464,7 @@ export const useStore = create<State>((set, get) => ({
       const k = key ?? accountKey(phone);
       const profile: Profile = {
         me: { name, phone, email, photo: s.me.photo },
+        unitId: s.unitId ?? units[0].id,
         points: 0,
         rewards: 0,
         favorites: [],
@@ -508,7 +518,8 @@ export const useStore = create<State>((set, get) => ({
     start.setHours(0, draft.slot!, 0, 0);
     // ao remarcar, o horário antigo não deve bloquear o novo
     const others = appointments.filter((a) => a.id !== draft.rescheduleId);
-    const barberId = draft.barberId ?? pickBarber(start, minutes, busyList(others, blocks), barbers.map((b) => b.id));
+    const unitBarbers = barbers.filter((b) => b.unitId === s.unitId).map((b) => b.id);
+    const barberId = draft.barberId ?? pickBarber(start, minutes, busyList(others, blocks), unitBarbers);
     const old = appointments.find((a) => a.id === draft.rescheduleId);
     const price = priceOf(draft, rewards);
     const usedReward = !old && price.reward > 0;
@@ -576,6 +587,8 @@ export const useStore = create<State>((set, get) => ({
   saveCard: (savedCard) => set({ savedCard }),
   removeCard: () => set({ savedCard: null }),
   setPhoto: (photo) => set(({ me }) => ({ me: { ...me, photo } })),
+  // trocar de unidade limpa o barbeiro e o horário escolhidos (eram da outra unidade)
+  setUnit: (unitId) => set(({ draft }) => ({ unitId, draft: { ...draft, barberId: null, slot: null } })),
   markRead: (id) => set(({ inbox }) => ({ inbox: inbox.map((n) => (n.id === id ? { ...n, read: true } : n)) })),
   markAllRead: () => set(({ inbox }) => ({ inbox: inbox.map((n) => ({ ...n, read: true })) })),
   removeNotice: (id) => set(({ inbox }) => ({ inbox: inbox.filter((n) => n.id !== id) })),
@@ -615,8 +628,8 @@ export const useStore = create<State>((set, get) => ({
             const notices: Notice[] = [
               { id: newId('n'), kind: 'avaliacao', title: `Como foi com ${b}?`, body: 'Avalie seu atendimento em poucos segundos.', at: new Date().toISOString(), read: false, href: `/avaliar/${id}` },
               won
-                ? { id: newId('n'), kind: 'fidelidade', title: 'Corte grátis liberado! 🎉', body: 'Você completou o cartão do Clube Mayk. Use no próximo agendamento.', at: new Date().toISOString(), read: false, href: '/fidelidade' }
-                : { id: newId('n'), kind: 'fidelidade', title: '+1 selo no Clube Mayk', body: `Atendimento com ${b} concluído. Você tem ${points} de ${LOYALTY_GOAL} selos.`, at: new Date().toISOString(), read: false, href: '/fidelidade' },
+                ? { id: newId('n'), kind: 'fidelidade', title: 'Corte grátis liberado! 🎉', body: 'Você completou o cartão do Clube Dom Cabral. Use no próximo agendamento.', at: new Date().toISOString(), read: false, href: '/fidelidade' }
+                : { id: newId('n'), kind: 'fidelidade', title: '+1 selo no Clube Dom Cabral', body: `Atendimento com ${b} concluído. Você tem ${points} de ${LOYALTY_GOAL} selos.`, at: new Date().toISOString(), read: false, href: '/fidelidade' },
             ];
             return { ...p, points, rewards: p.rewards + (won ? 1 : 0), inbox: [...notices, ...p.inbox] };
           }),

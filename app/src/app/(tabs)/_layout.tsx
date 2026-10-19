@@ -32,7 +32,7 @@ export default function TabsLayout() {
             </LinearGradient>
           ) : (
             <Pressable key={t.href} onPress={() => router.navigate(t.href)} hitSlop={10} style={s.item}>
-              <Feather name={t.icon} size={21} color="#9A9A9A" />
+              <Feather name={t.icon} size={21} color="#A89A88" />
             </Pressable>
           );
         })}
@@ -42,7 +42,7 @@ export default function TabsLayout() {
 }
 
 const s = StyleSheet.create({
-  bar: { position: 'absolute', left: 22, right: 22, height: 70, borderRadius: radius.pill, backgroundColor: 'rgba(28,28,28,0.96)', borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 10 },
+  bar: { position: 'absolute', left: 22, right: 22, height: 70, borderRadius: radius.pill, backgroundColor: 'rgba(36,28,21,0.96)', borderWidth: 1, borderColor: colors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 10 },
   on: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radius.pill, paddingHorizontal: 18, paddingVertical: 12 },
   item: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

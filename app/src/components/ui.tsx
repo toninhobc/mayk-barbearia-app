@@ -19,12 +19,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, Line, Pattern, Rect } from 'react-native-svg';
 import { colors, fonts, goldGradient, radius, space } from '@/theme';
 
-export const logo = require('../../assets/images/mayk-logo.jpg');
+/** Emblema redondo (rei de baralho) e logo completo da Dom Cabral. */
+export const logo = require('../../assets/images/dom-cabral-emblem.png');
+export const wordmark = require('../../assets/images/dom-cabral-logo.png');
 export type IconName = keyof typeof Feather.glyphMap;
 
 /* ---------- Tipografia ---------- */
 
-type Variant = 'serif' | 'serifItalic' | 'regular' | 'medium' | 'semibold' | 'bold';
+type Variant = 'display' | 'serif' | 'serifItalic' | 'regular' | 'medium' | 'semibold' | 'bold';
 
 export function T({
   v = 'regular',
@@ -64,8 +66,8 @@ export function Photo({
     );
   }
   return (
-    <View style={[{ borderRadius: r, overflow: 'hidden', backgroundColor: '#24201B' }, style]}>
-      <LinearGradient colors={['#3A342C', '#1B1916']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+    <View style={[{ borderRadius: r, overflow: 'hidden', backgroundColor: '#2A2119' }, style]}>
+      <LinearGradient colors={['#3D2F23', '#1F1812']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -139,8 +141,8 @@ export function IconButton({ icon, onPress, glass, color, badge }: { icon: IconN
 export function Chip({ label, active, onPress, icon }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName }) {
   return (
     <Pressable onPress={onPress} style={[s.chip, active && s.chipOn]}>
-      {icon && <Feather name={icon} size={13} color={active ? colors.goldLight : '#CFCFCF'} />}
-      <T v={active ? 'semibold' : 'medium'} size={12} color={active ? colors.goldLight : '#CFCFCF'}>
+      {icon && <Feather name={icon} size={13} color={active ? colors.goldLight : '#E6DAC3'} />}
+      <T v={active ? 'semibold' : 'medium'} size={12} color={active ? colors.goldLight : '#E6DAC3'}>
         {label}
       </T>
     </Pressable>
@@ -150,7 +152,7 @@ export function Chip({ label, active, onPress, icon }: { label: string; active?:
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <View style={s.section}>
-      <T v="serif" size={22}>
+      <T v="display" size={18} style={{ letterSpacing: 0.5 }}>
         {title}
       </T>
       {action ? (
@@ -180,7 +182,7 @@ export function Header({ title, subtitle, right }: { title: string; subtitle?: s
     <View style={[s.header, { paddingTop: top + 8 }]}>
       <IconButton icon="chevron-left" onPress={() => (router.canGoBack() ? router.back() : router.replace('/inicio'))} />
       <View style={{ flex: 1, alignItems: 'center' }}>
-        <T v="serif" size={20}>
+        <T v="display" size={17} numberOfLines={1}>
           {title}
         </T>
         {subtitle ? (
@@ -224,12 +226,10 @@ export function Field({ label, prefix, error, style, ...input }: TextInputProps 
   );
 }
 
-export const Logo = ({ size = 84, ring = true }: { size?: number; ring?: boolean }) => (
-  <Image
-    source={logo}
-    style={{ width: size, height: size, borderRadius: size / 2, borderWidth: ring ? 1 : 0, borderColor: 'rgba(200,161,90,0.6)' }}
-  />
-);
+export const Logo = ({ size = 84 }: { size?: number; ring?: boolean }) => <Image source={logo} style={{ width: size, height: size }} />;
+
+/** Logo completo ("Dom Cabral · Barbearia Original"), proporção 1024×435. */
+export const Wordmark = ({ width = 260 }: { width?: number }) => <Image source={wordmark} resizeMode="contain" style={{ width, height: (width * 435) / 1024 }} />;
 
 export const Stars = ({ value, size = 12 }: { value: number; size?: number }) => (
   <T size={size} color={colors.gold}>
@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   glass: { backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(255,255,255,0.15)' },
   badge: { position: 'absolute', top: 11, right: 12, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.gold },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'transparent' },
-  chipOn: { backgroundColor: 'rgba(200,161,90,0.12)', borderColor: colors.gold },
+  chipOn: { backgroundColor: 'rgba(190,154,41,0.12)', borderColor: colors.gold },
   section: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 28, marginBottom: 14 },
   card: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space.md },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.gutter, paddingBottom: 12, gap: 12, backgroundColor: colors.bg },

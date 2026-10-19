@@ -1,8 +1,8 @@
-# Mayk Barbearia — App
+# Dom Cabral Barbearia — App
 
-Proposta de um novo aplicativo para a Mayk Barbearia (Brasília): agendamento, pagamento por Pix e programa de fidelidade, com visual escuro premium (preto, prata e dourado).
+Proposta de aplicativo para a [Dom Cabral Barbearia](https://domcabralbarbearia.com.br/) (Brasília, 9 unidades): escolha da unidade, agendamento, pagamento por Pix e programa de fidelidade, com o visual de pub clássico da marca (madeira, couro e dourado).
 
-> **Status:** demonstração clicável com dados fictícios (sem backend). Pagamentos e SMS são simulados.
+> **Status:** demonstração clicável sem backend. Unidades, endereços, telefones, horários e serviços vêm do site; barbeiros, preços e durações são **exemplos**. Pagamentos e SMS são simulados.
 
 ## Estrutura
 
@@ -20,7 +20,7 @@ Detalhes do app em `app/src/`:
 | `components/` | Peças visuais reutilizáveis (`ui.tsx`, `cards.tsx`) |
 | `store/` | Estado global (Zustand): agendamentos, rascunho, pontos |
 | `lib/` | Regras: horários livres (`availability.ts`) e formatação |
-| `data/` | Serviços, preços, barbeiros (`mock.ts`) e fotos (`photos.ts`) |
+| `data/` | Unidades, serviços, preços, barbeiros (`mock.ts`) e fotos (`photos.ts`) |
 | `theme.ts` | Cores, fontes e espaçamentos |
 
 ## Como rodar
