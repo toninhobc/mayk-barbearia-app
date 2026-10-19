@@ -179,8 +179,17 @@ const reviewTexts: Record<number, string[]> = {
 };
 const tagPool = ['Pontualidade', 'Capricho', 'Atendimento', 'Ambiente', 'Preço justo'];
 
+/** Início do histórico de exemplo: dia 1 do mês de 5 meses atrás (6 meses com o atual). */
+export const HISTORY_START = (() => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 5);
+  return d;
+})();
+
 /**
- * Agenda da barbearia nos últimos 30 dias e nos próximos 7, para o painel ter números reais.
+ * Agenda da barbearia desde HISTORY_START até os próximos 7 dias, para o painel ter números reais.
  * O primeiro dia útil a partir de amanhã fica lotado com o Luiz Felipe (demonstra a lista de espera).
  */
 const buildSeed = (): Appointment[] => {
@@ -193,11 +202,19 @@ const buildSeed = (): Appointment[] => {
   let fullDay = 1;
   while (new Date(at(fullDay, 12)).getDay() === shop.closedWeekday) fullDay++;
   let n = 0;
+  // índice barbeiro|dia: com milhares de horários, procurar conflito na lista inteira fica lento
+  const byDay = new Map<string, Appointment[]>();
+  const keyOf = (barberId: string, d: Date) => `${barberId}|${d.toDateString()}`;
+  const dayList = (barberId: string, d: Date) => byDay.get(keyOf(barberId, d)) ?? [];
+  for (const a of list) {
+    const k = keyOf(a.barberId, new Date(a.start));
+    byDay.set(k, [...(byDay.get(k) ?? []), a]);
+  }
 
   const add = (barberId: string, start: Date, serviceId: string, booked = false) => {
     const s = svc(serviceId);
     if (start.getHours() * 60 + start.getMinutes() + s.minutes > shop.closeMinutes) return false;
-    if (hasConflict(barberId, start, s.minutes, list)) return false;
+    if (hasConflict(barberId, start, s.minutes, dayList(barberId, start))) return false;
     const past = start.getTime() + s.minutes * 60000 < now;
     const status: Status = past ? (r() < 0.06 ? 'falta' : 'concluido') : !booked && r() < 0.04 ? 'cancelado' : 'agendado';
     const roll = r();
@@ -219,15 +236,17 @@ const buildSeed = (): Appointment[] => {
       a.rating = { stars, tags: r() < 0.6 ? [pick(tagPool)] : [], text: pick(reviewTexts[stars]), at: new Date(start.getTime() + 3 * 3600000).toISOString() };
     }
     list.push(a);
+    byDay.set(keyOf(barberId, start), [...dayList(barberId, start), a]);
     return true;
   };
 
-  for (let d = -30; d <= 7; d++) {
+  const firstDay = Math.round((HISTORY_START.getTime() - new Date(at(0, 0)).getTime()) / 86400000);
+  for (let d = firstDay; d <= 7; d++) {
     const day = new Date(at(d, 0));
     if (day.getDay() === shop.closedWeekday) continue;
     for (const b of barbers) {
       // os horários do cliente de demonstração também contam
-      let placed = list.filter((a) => a.barberId === b.id && new Date(a.start).toDateString() === day.toDateString()).length;
+      let placed = dayList(b.id, day).length;
       if (d === fullDay && b.id === 'b5') {
         // dia lotado: encaixa cortes um atrás do outro
         for (let m = shop.openMinutes; m < shop.closeMinutes; m += 10) {
