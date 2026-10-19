@@ -4,7 +4,7 @@
     "slug": "dom-cabral-barbearia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/dom-cabral-icon.png",
     "scheme": "domcabral",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#15100C",
@@ -14,13 +14,13 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#15100C",
-        "foregroundImage": "./assets/images/icon.png"
+        "foregroundImage": "./assets/images/dom-cabral-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/icon.png",
+      "favicon": "./assets/images/dom-cabral-icon.png",
       "name": "Dom Cabral Barbearia",
       "themeColor": "#15100C",
       "backgroundColor": "#15100C"
