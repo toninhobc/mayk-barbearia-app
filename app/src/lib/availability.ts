@@ -1,9 +1,23 @@
-import { shop } from '@/data/mock';
+import { barbers, hoursOn, type DayHours } from '@/data/mock';
 import type { Appointment } from '@/store';
 
-const STEP = 30;
+export const STEP = 30;
 
-/** Horários livres (minutos desde 00:00) para um barbeiro em um dia. */
+/** Horário da unidade do barbeiro naquele dia (null = fechada). */
+export const barberHours = (barberId: string, day: Date): DayHours => {
+  const unitId = barbers.find((b) => b.id === barberId)?.unitId;
+  return unitId ? hoursOn(unitId, day) : null;
+};
+
+/** Inícios possíveis (minutos desde 00:00) dentro do horário, de 30 em 30 min. */
+export const slotsWithin = (hours: DayHours, durationMin: number): number[] => {
+  if (!hours) return [];
+  const out: number[] = [];
+  for (let start = hours[0]; start + durationMin <= hours[1]; start += STEP) out.push(start);
+  return out;
+};
+
+/** Horários livres (minutos desde 00:00) para um barbeiro (ou qualquer um da lista) em um dia. */
 export function freeSlots(
   day: Date,
   barberId: string | null,
@@ -12,17 +26,18 @@ export function freeSlots(
   barberIds: string[],
   now = new Date(),
 ): number[] {
-  if (day.getDay() === shop.closedWeekday) return [];
   const candidates = barberId ? [barberId] : barberIds;
   const slots = new Set<number>();
-  for (let start = shop.openMinutes; start + durationMin <= shop.closeMinutes; start += STEP) {
-    const t = new Date(day);
-    t.setHours(0, start, 0, 0);
-    if (t.getTime() <= now.getTime()) continue;
-    const ok = candidates.some((b) => !hasConflict(b, t, durationMin, appointments));
-    if (ok) slots.add(start);
+  for (const b of candidates) {
+    for (const start of slotsWithin(barberHours(b, day), durationMin)) {
+      if (slots.has(start)) continue;
+      const t = new Date(day);
+      t.setHours(0, start, 0, 0);
+      if (t.getTime() <= now.getTime()) continue;
+      if (!hasConflict(b, t, durationMin, appointments)) slots.add(start);
+    }
   }
-  return [...slots];
+  return [...slots].sort((x, y) => x - y);
 }
 
 export function hasConflict(barberId: string, start: Date, durationMin: number, appts: Appointment[]) {
@@ -36,7 +51,12 @@ export function hasConflict(barberId: string, start: Date, durationMin: number, 
   });
 }
 
-/** Escolhe um barbeiro livre quando o cliente marca "Sem preferência". */
+/** Escolhe um barbeiro livre (e com a unidade aberta) quando o cliente marca "Sem preferência". */
 export function pickBarber(start: Date, durationMin: number, appts: Appointment[], barberIds: string[]) {
-  return barberIds.find((b) => !hasConflict(b, start, durationMin, appts)) ?? barberIds[0];
+  const m = start.getHours() * 60 + start.getMinutes();
+  const open = (b: string) => {
+    const hrs = barberHours(b, start);
+    return !!hrs && m >= hrs[0] && m + durationMin <= hrs[1];
+  };
+  return barberIds.find((b) => open(b) && !hasConflict(b, start, durationMin, appts)) ?? barberIds[0];
 }

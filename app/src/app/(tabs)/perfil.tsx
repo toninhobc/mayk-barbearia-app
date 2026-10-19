@@ -8,8 +8,9 @@ import { PhotoSheet } from '@/components/photo-sheet';
 import { UserAvatar } from '@/components/user-avatar';
 import { barberOf } from '@/components/cards';
 import { Sheet } from '@/components/sheet';
+import { UnitSheet } from '@/components/unit-sheet';
 import { OutlineButton, SectionHeader, T, type IconName } from '@/components/ui';
-import { shop } from '@/data/mock';
+import { shop, unitOf } from '@/data/mock';
 import { birthdayLabel, brl } from '@/lib/format';
 import { LOYALTY_GOAL, mine, useStore, type Appointment } from '@/store';
 import { colors, radius, space } from '@/theme';
@@ -53,8 +54,9 @@ function Row({ icon, label, value, onPress, danger }: { icon: IconName; label: s
 
 export default function Perfil() {
   const { top } = useSafeAreaInsets();
-  const { me, account, appointments, points, logout, birthday, notifications, toggleNotifications, savedCard, removeCard } = useStore();
-  const [sheet, setSheet] = useState<'birthday' | 'cards' | 'photo' | null>(null);
+  const { me, account, appointments, points, logout, birthday, notifications, toggleNotifications, savedCard, removeCard, unitId } = useStore();
+  const unit = unitOf(unitId);
+  const [sheet, setSheet] = useState<'birthday' | 'cards' | 'photo' | 'unit' | null>(null);
   const all = mine(appointments, account);
   const paid = all.filter((a) => a.paid && a.status !== 'cancelado').sort((a, b) => +new Date(b.start) - +new Date(a.start));
   const done = all.filter((a) => a.status === 'concluido');
@@ -69,7 +71,7 @@ export default function Perfil() {
             <Feather name="camera" size={14} color={colors.onGold} />
           </View>
         </Pressable>
-        <T v="serif" size={26} style={{ marginTop: 14 }}>
+        <T v="display" size={24} style={{ marginTop: 14 }}>
           {me.name}
         </T>
         <T size={13} color={colors.muted} style={{ marginTop: 4 }}>
@@ -137,12 +139,30 @@ export default function Perfil() {
         <Row icon={notifications ? 'bell' : 'bell-off'} label="Notificações" value={notifications ? 'Ativadas' : 'Desativadas'} onPress={toggleNotifications} />
       </View>
 
-      <SectionHeader title="A barbearia" />
+      <SectionHeader title="Sua unidade" />
       <View style={s.group}>
-        <Row icon="clock" label="Horário" value={shop.hours} />
-        <Row icon="map-pin" label="Endereço" value={shop.address} onPress={() => Linking.openURL('https://maps.google.com/?q=Mayk+Barbearia+Brasilia')} />
+        <Row icon="map-pin" label={unit.name} value="Trocar" onPress={() => setSheet('unit')} />
+        <View style={s.info}>
+          <Feather name="clock" size={18} color={colors.gold} />
+          <View style={{ flex: 1, gap: 3 }}>
+            {unit.hoursLabel.map((l) => (
+              <T key={l} size={13} color={colors.text}>
+                {l}
+              </T>
+            ))}
+          </View>
+        </View>
+        <Pressable
+          onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(`Dom Cabral Barbearia ${unit.address}`)}`)}
+          style={({ pressed }) => [s.info, pressed && { backgroundColor: colors.surface2 }]}>
+          <Feather name="navigation" size={18} color={colors.gold} />
+          <T size={13} color={colors.text} style={{ flex: 1, lineHeight: 19 }}>
+            {unit.address}
+          </T>
+          <Feather name="chevron-right" size={18} color={colors.dim} />
+        </Pressable>
+        <Row icon="message-circle" label="WhatsApp" value={unit.phone} onPress={() => Linking.openURL(`https://wa.me/${unit.whatsapp}`)} />
         <Row icon="instagram" label="Instagram" value={shop.instagram} onPress={() => Linking.openURL(`https://instagram.com/${shop.instagram.replace('@', '')}`)} />
-        <Row icon="message-circle" label="WhatsApp" value="Fale conosco" onPress={() => Linking.openURL('https://wa.me/')} />
       </View>
 
       <View style={[s.group, { marginTop: 18 }]}>
@@ -160,6 +180,7 @@ export default function Perfil() {
 
       <BirthdaySheet visible={sheet === 'birthday'} onClose={() => setSheet(null)} />
       <PhotoSheet visible={sheet === 'photo'} onClose={() => setSheet(null)} />
+      <UnitSheet visible={sheet === 'unit'} onClose={() => setSheet(null)} />
       <Sheet visible={sheet === 'cards'} onClose={() => setSheet(null)} title="Cartões salvos">
         {savedCard ? (
           <>
@@ -192,6 +213,7 @@ const s = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   group: { borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.line },
+  info: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.line },
   payRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, marginBottom: 14, borderRadius: radius.md, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.line },
   sep: { borderTopWidth: 1, borderTopColor: colors.line },

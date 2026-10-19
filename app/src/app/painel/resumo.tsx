@@ -3,8 +3,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { barberOf } from '@/components/cards';
 import { Sheet } from '@/components/sheet';
-import { SectionHeader, Stars, T } from '@/components/ui';
-import { barbers, OWNER_ID, services, shop } from '@/data/mock';
+import { Chip, SectionHeader, Stars, T } from '@/components/ui';
+import { barbers, OWNER_ID, services, SPAN, unitOf, units } from '@/data/mock';
+import { barberHours } from '@/lib/availability';
 import { brl, timeAgo } from '@/lib/format';
 import {
   addDays,
@@ -48,6 +49,12 @@ export default function Resumo() {
   const [anchor, setAnchor] = useState(() => startOfDay(now));
   const [sel, setSel] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
+  const [unitF, setUnitF] = useState<string | null>(null); // só o dono: null = rede toda
+  const scopeIds = useMemo(
+    () => (owner ? barbers.filter((b) => !unitF || b.unitId === unitF).map((b) => b.id) : staff ? [staff.barberId] : []),
+    [owner, unitF, staff],
+  );
+  const closedOn = (d: Date) => scopeIds.every((id) => !barberHours(id, d));
 
   const range = rangeOf(mode, anchor);
   const limit = mode === 'dia' ? addDays(startOfDay(now), FUTURE_DAYS + 1) : now;
@@ -69,7 +76,7 @@ export default function Resumo() {
   };
 
   const data = useMemo(() => {
-    const scope = appointments.filter((a) => owner || a.barberId === staff?.barberId);
+    const scope = appointments.filter((a) => scopeIds.includes(a.barberId));
     const inRange = scope.filter((a) => within(a, range));
     const done = inRange.filter((a) => a.status === 'concluido');
     const missed = inRange.filter((a) => a.status === 'falta');
@@ -78,21 +85,28 @@ export default function Resumo() {
     const prevRevenue = sum(scope.filter((a) => a.status === 'concluido' && within(a, cmp.prevWin)));
     const pending = inRange.filter((a) => a.status === 'agendado' && +new Date(a.start) >= +now);
 
-    const buckets = bucketsOf(mode, range, shop.openMinutes / 60, shop.closeMinutes / 60).map((b) => {
+    const buckets = bucketsOf(mode, range, Math.floor(SPAN[0] / 60), Math.ceil(SPAN[1] / 60)).map((b) => {
       const list = inRange.filter((a) => within(a, b));
       const ok = list.filter((a) => a.status === 'concluido');
       const future = list.filter((a) => a.status === 'agendado' && +new Date(a.start) >= +now);
       return { ...b, cents: sum(ok), count: ok.length, forecast: sum(future), forecastCount: future.length, isFuture: +b.from > +now };
     });
 
-    const ranking = barbers
-      .map((b) => {
-        const list = done.filter((a) => a.barberId === b.id);
-        const rated = ratedAppointments(inRange, b.id);
-        const avg = rated.length ? rated.reduce((t, a) => t + a.rating!.stars, 0) / rated.length : b.rating;
-        return { b, cents: sum(list), count: list.length, avg };
-      })
-      .sort((x, y) => y.cents - x.cents);
+    // rede toda: ranking por unidade; uma unidade: ranking dos barbeiros dela
+    const rank = (id: string, label: string, ids: string[], base: number) => {
+      const list = done.filter((a) => ids.includes(a.barberId));
+      const rated = inRange.filter((a) => ids.includes(a.barberId) && a.rating);
+      const avg = rated.length ? rated.reduce((t, a) => t + a.rating!.stars, 0) / rated.length : base;
+      return { id, label, cents: sum(list), count: list.length, avg };
+    };
+    const ranking = (
+      unitF
+        ? barbers.filter((b) => b.unitId === unitF).map((b) => rank(b.id, b.short, [b.id], b.rating))
+        : units.map((u) => {
+            const team = barbers.filter((b) => b.unitId === u.id);
+            return rank(u.id, u.name, team.map((b) => b.id), team.reduce((t, b) => t + b.rating, 0) / team.length);
+          })
+    ).sort((x, y) => y.cents - x.cents);
 
     const counts = new Map<string, number>();
     done.forEach((a) => a.serviceIds.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1)));
@@ -117,7 +131,7 @@ export default function Resumo() {
     };
     // range é derivado de mode + anchor
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appointments, owner, staff?.barberId, mode, anchor, now]);
+  }, [appointments, scopeIds, unitF, mode, anchor, now]);
 
   const { buckets } = data;
   const max = Math.max(1, ...buckets.map((b) => b.cents + b.forecast));
@@ -133,9 +147,17 @@ export default function Resumo() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: space.gutter, paddingBottom: 130 }}>
-      <T v="serif" size={28}>
-        {owner ? 'Resumo da casa' : 'Meu desempenho'}
+      <T v="display" size={24}>
+        {owner ? (unitF ? `Dom Cabral ${unitOf(unitF).name}` : 'Resumo da rede') : 'Meu desempenho'}
       </T>
+      {owner && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -space.gutter, marginTop: 12 }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter }}>
+          <Chip label="Todas as unidades" icon="map-pin" active={!unitF} onPress={() => { setUnitF(null); setSel(null); }} />
+          {units.map((u) => (
+            <Chip key={u.id} label={u.name} active={unitF === u.id} onPress={() => { setUnitF(u.id); setSel(null); }} />
+          ))}
+        </ScrollView>
+      )}
 
       {/* Tipo de período */}
       <View style={s.modes}>
@@ -163,9 +185,9 @@ export default function Resumo() {
           <Feather name="chevron-right" size={20} color={colors.text} />
         </Pressable>
       </View>
-      {mode === 'dia' && anchor.getDay() === shop.closedWeekday && (
+      {mode === 'dia' && closedOn(anchor) && (
         <T size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-          Barbearia fechada aos domingos.
+          {owner && !unitF ? 'Todas as unidades fechadas neste dia.' : 'Unidade fechada neste dia.'}
         </T>
       )}
       {!isCurrent && (
@@ -309,17 +331,17 @@ export default function Resumo() {
       {/* Ranking */}
       {owner && (
         <>
-          <SectionHeader title="Barbeiros" />
+          <SectionHeader title={unitF ? 'Barbeiros' : 'Unidades'} />
           <View style={s.box}>
             {data.ranking.map((r, i) => (
-              <View key={r.b.id} style={[s.rankRow, i > 0 && s.sep]}>
+              <View key={r.id} style={[s.rankRow, i > 0 && s.sep]}>
                 <T v="semibold" size={13} color={colors.muted} style={{ width: 18 }}>
                   {i + 1}
                 </T>
                 <View style={{ flex: 1 }}>
                   <View style={s.rankTop}>
                     <T v="semibold" size={14}>
-                      {r.b.short}
+                      {r.label}
                     </T>
                     <T v="semibold" size={14}>
                       {short(r.cents)}
@@ -404,11 +426,12 @@ export default function Resumo() {
             {owner && (
               <T size={11} color={colors.muted}>
                 com {barberOf(a.barberId).short}
+                {unitF ? '' : ` · ${unitOf(barberOf(a.barberId).unitId).name}`}
               </T>
             )}
           </View>
           {!!a.rating!.text && (
-            <T size={13} color="#BDBDBD" style={{ marginTop: 6, lineHeight: 19 }}>
+            <T size={13} color="#CDBFA8" style={{ marginTop: 6, lineHeight: 19 }}>
               {a.rating!.text}
             </T>
           )}
@@ -420,13 +443,29 @@ export default function Resumo() {
         </View>
       ))}
 
-      <PeriodPicker visible={picking} onClose={() => setPicking(false)} mode={mode} anchor={anchor} now={now} onPick={(d) => go(mode, d)} />
+      <PeriodPicker visible={picking} onClose={() => setPicking(false)} mode={mode} anchor={anchor} now={now} closedOn={closedOn} onPick={(d) => go(mode, d)} />
     </ScrollView>
   );
 }
 
 /** Calendário: dia (Dia/Semana) ou mês (Mês/6 meses). */
-function PeriodPicker({ visible, onClose, mode, anchor, now, onPick }: { visible: boolean; onClose: () => void; mode: Mode; anchor: Date; now: Date; onPick: (d: Date) => void }) {
+function PeriodPicker({
+  visible,
+  onClose,
+  mode,
+  anchor,
+  now,
+  closedOn,
+  onPick,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  mode: Mode;
+  anchor: Date;
+  now: Date;
+  closedOn: (d: Date) => boolean;
+  onPick: (d: Date) => void;
+}) {
   const byMonth = mode === 'mes' || mode === '6m';
   return (
     <Sheet visible={visible} onClose={onClose} title={byMonth ? 'Escolher mês' : mode === 'semana' ? 'Escolher semana' : 'Escolher dia'}>
@@ -443,6 +482,7 @@ function PeriodPicker({ visible, onClose, mode, anchor, now, onPick }: { visible
         ) : (
           <DayGrid
             mode={mode}
+            closedOn={closedOn}
             now={now}
             anchor={anchor}
             onPick={(d) => {
@@ -475,7 +515,7 @@ function MonthList({ now, anchor, onPick }: { now: Date; anchor: Date; onPick: (
   );
 }
 
-function DayGrid({ mode, now, anchor, onPick }: { mode: Mode; now: Date; anchor: Date; onPick: (d: Date) => void }) {
+function DayGrid({ mode, now, anchor, closedOn, onPick }: { mode: Mode; now: Date; anchor: Date; closedOn: (d: Date) => boolean; onPick: (d: Date) => void }) {
   const [month, setMonth] = useState(() => startOfMonth(anchor));
   const first = startOfMonth(HISTORY_START);
   const today = startOfDay(now);
@@ -506,7 +546,7 @@ function DayGrid({ mode, now, anchor, onPick }: { mode: Mode; now: Date; anchor:
         ))}
         {monthGrid(month).map((d, i) => {
           if (!d) return <View key={`e${i}`} style={s.cell} />;
-          const off = +d < +HISTORY_START || +d > +last || (mode === 'dia' && d.getDay() === shop.closedWeekday);
+          const off = +d < +HISTORY_START || +d > +last || (mode === 'dia' && closedOn(d));
           const on = contains(sel, d);
           const isToday = +d === +today;
           return (
@@ -529,7 +569,7 @@ const s = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
   arrow: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   period: { flex: 1, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12 },
-  hero: { marginTop: 16, padding: 18, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.28)' },
+  hero: { marginTop: 16, padding: 18, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(190,154,41,0.28)' },
   delta: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
   kpis: { flexDirection: 'row', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.line },
   kpi: { flex: 1, alignItems: 'center' },
@@ -541,7 +581,7 @@ const s = StyleSheet.create({
   col: { flex: 1, height: '100%', justifyContent: 'flex-end' },
   bar: { borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   barStacked: { borderTopLeftRadius: 0, borderTopRightRadius: 0, marginTop: 2 },
-  ghost: { backgroundColor: 'rgba(227,196,133,0.12)', borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(227,196,133,0.7)', borderBottomWidth: 0, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  ghost: { backgroundColor: 'rgba(216,184,90,0.12)', borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(216,184,90,0.7)', borderBottomWidth: 0, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   axis: { flexDirection: 'row', marginTop: 6 },
   tick: { flex: 1, textAlign: 'center' },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },

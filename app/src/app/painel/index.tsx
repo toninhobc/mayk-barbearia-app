@@ -5,7 +5,8 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { apptTitle, barberOf, timeOf } from '@/components/cards';
 import { Sheet } from '@/components/sheet';
 import { Chip, GoldButton, T } from '@/components/ui';
-import { barbers, OWNER_ID, shop } from '@/data/mock';
+import { barbers, OWNER_ID, SPAN, unitOf, units } from '@/data/mock';
+import { barberHours } from '@/lib/availability';
 import { brl, hhmm, sameDay, weekdayShort } from '@/lib/format';
 import { clientLabel, useStore, type Appointment, type Block } from '@/store';
 import { colors, radius, space } from '@/theme';
@@ -40,6 +41,7 @@ export default function PainelAgenda() {
   const { staff, appointments, blocks, accounts, complete, markNoShow, cancel, removeBlock } = useStore();
   const owner = staff?.barberId === OWNER_ID;
   const [filter, setFilter] = useState<string | null>(owner ? null : (staff?.barberId ?? null));
+  const [unitF, setUnitF] = useState<string | null>(null); // só o dono: null = todas as unidades
   const [dayIdx, setDayIdx] = useState(DAYS_BACK); // hoje
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [blocking, setBlocking] = useState(false);
@@ -61,9 +63,12 @@ export default function PainelAgenda() {
     });
   }, []);
   const day = days[dayIdx];
-  const closed = day.getDay() === shop.closedWeekday;
+  // barbeiros em vista: o escolhido, os da unidade escolhida ou todos
+  const scope = filter ? [filter] : barbers.filter((b) => !unitF || b.unitId === unitF).map((b) => b.id);
+  const closedOn = (d: Date) => scope.every((id) => !barberHours(id, d));
+  const closed = closedOn(day);
 
-  const mineFilter = (barberId: string) => !filter || barberId === filter;
+  const mineFilter = (barberId: string) => scope.includes(barberId);
   const dayAppts = appointments.filter((a) => sameDay(new Date(a.start), day) && mineFilter(a.barberId));
   const dayBlocks = blocks.filter((b) => sameDay(new Date(b.start), day) && mineFilter(b.barberId));
   const items: ({ kind: 'appt'; a: Appointment } | { kind: 'block'; b: Block })[] = [
@@ -81,6 +86,12 @@ export default function PainelAgenda() {
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
   const expected = active.filter((a) => a.status !== 'falta').reduce((t, a) => t + a.totalCents, 0);
   const received = active.filter((a) => a.status === 'concluido').reduce((t, a) => t + a.totalCents, 0);
+
+  // sem unidade escolhida, o dono vê também em qual unidade está cada atendimento
+  const who = (barberId: string) => {
+    const b = barberOf(barberId);
+    return owner && !unitF ? `${b.short} · ${unitOf(b.unitId).name}` : b.short;
+  };
 
   const doComplete = (a: Appointment) => {
     complete(a.id);
@@ -101,7 +112,7 @@ export default function PainelAgenda() {
                 <T size={10} v="medium" color={on ? colors.onGold : colors.muted}>
                   {today ? 'HOJE' : weekdayShort(d)}
                 </T>
-                <T v="semibold" size={18} color={on ? colors.onGold : d.getDay() === shop.closedWeekday ? colors.dim : colors.text}>
+                <T v="semibold" size={18} color={on ? colors.onGold : closedOn(d) ? colors.dim : colors.text}>
                   {d.getDate()}
                 </T>
               </Pressable>
@@ -109,11 +120,19 @@ export default function PainelAgenda() {
           })}
         </ScrollView>
 
-        {/* Barbeiro (só o dono escolhe) */}
+        {/* Unidade e barbeiro (só o dono escolhe) */}
         {owner && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter, paddingTop: 8 }}>
+            <Chip label="Todas as unidades" icon="map-pin" active={!unitF} onPress={() => { setUnitF(null); setFilter(null); }} />
+            {units.map((u) => (
+              <Chip key={u.id} label={u.name} active={unitF === u.id} onPress={() => { setUnitF(u.id); setFilter(null); }} />
+            ))}
+          </ScrollView>
+        )}
+        {owner && unitF && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: space.gutter, paddingTop: 8 }}>
             <Chip label="Todos" active={!filter} onPress={() => setFilter(null)} />
-            {barbers.map((b) => (
+            {barbers.filter((b) => b.unitId === unitF).map((b) => (
               <Chip key={b.id} label={b.short} active={filter === b.id} onPress={() => setFilter(b.id)} />
             ))}
           </ScrollView>
@@ -154,7 +173,7 @@ export default function PainelAgenda() {
 
           {closed && (
             <T color={colors.muted} style={{ marginTop: 6 }}>
-              Barbearia fechada aos domingos.
+              {owner && !unitF && !filter ? 'Todas as unidades fechadas neste dia.' : 'Unidade fechada neste dia.'}
             </T>
           )}
           {!closed && items.length === 0 && (
@@ -182,7 +201,7 @@ export default function PainelAgenda() {
                     </T>
                     {!filter && (
                       <T size={12} color={colors.dim} style={{ marginTop: 2 }}>
-                        {barberOf(b.barberId).short}
+                        {who(b.barberId)}
                       </T>
                     )}
                   </View>
@@ -211,11 +230,11 @@ export default function PainelAgenda() {
                     </T>
                     <T size={12} color={colors.muted} style={{ marginTop: 2 }} numberOfLines={2}>
                       {apptTitle(a)}
-                      {!filter ? ` · ${barberOf(a.barberId).short}` : ''}
+                      {!filter ? ` · ${who(a.barberId)}` : ''}
                     </T>
                     {a.reward && (
                       <T size={11} color={colors.goldLight} style={{ marginTop: 3 }}>
-                        Corte grátis do Clube Mayk
+                        Corte grátis do Clube Dom Cabral
                       </T>
                     )}
                   </View>
@@ -266,7 +285,13 @@ export default function PainelAgenda() {
         </View>
       </ScrollView>
 
-      <BlockSheet visible={blocking} onClose={() => setBlocking(false)} day={day} barberId={filter ?? staff?.barberId ?? barbers[0].id} canPick={owner} />
+      <BlockSheet
+        visible={blocking}
+        onClose={() => setBlocking(false)}
+        day={day}
+        barberId={filter ?? scope.find((id) => barberHours(id, day)) ?? scope[0]}
+        choices={owner ? scope : []}
+      />
 
       {toast && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={s.toast}>
@@ -281,16 +306,16 @@ export default function PainelAgenda() {
 }
 
 /** Janela para bloquear um período na agenda (almoço, folga...). */
-function BlockSheet({ visible, onClose, day, barberId, canPick }: { visible: boolean; onClose: () => void; day: Date; barberId: string; canPick: boolean }) {
+function BlockSheet({ visible, onClose, day, barberId, choices }: { visible: boolean; onClose: () => void; day: Date; barberId: string; choices: string[] }) {
   return (
     <Sheet visible={visible} onClose={onClose} title="Bloquear horário">
       {/* montado só com a janela aberta: cada abertura começa do zero */}
-      {visible && <BlockForm onDone={onClose} day={day} initialBarber={barberId} canPick={canPick} />}
+      {visible && <BlockForm onDone={onClose} day={day} initialBarber={barberId} choices={choices} />}
     </Sheet>
   );
 }
 
-function BlockForm({ onDone, day, initialBarber, canPick }: { onDone: () => void; day: Date; initialBarber: string; canPick: boolean }) {
+function BlockForm({ onDone, day, initialBarber, choices }: { onDone: () => void; day: Date; initialBarber: string; choices: string[] }) {
   const addBlock = useStore((s) => s.addBlock);
   const [barberId, setBarberId] = useState(initialBarber);
   const [start, setStart] = useState(12 * 60);
@@ -298,13 +323,14 @@ function BlockForm({ onDone, day, initialBarber, canPick }: { onDone: () => void
   const [reason, setReason] = useState(reasons[0]);
   const [error, setError] = useState<string | null>(null);
 
+  const [open, close] = barberHours(barberId, day) ?? SPAN;
   const slots: number[] = [];
-  for (let m = shop.openMinutes; m < shop.closeMinutes; m += 30) slots.push(m);
+  for (let m = open; m < close; m += 30) slots.push(m);
   const allDay = duration === 'dia';
 
   const save = () => {
-    const from = allDay ? shop.openMinutes : start;
-    const minutes = allDay ? shop.closeMinutes - shop.openMinutes : Math.min(duration, shop.closeMinutes - start);
+    const from = allDay ? open : Math.max(start, open);
+    const minutes = allDay ? close - open : Math.min(duration, close - from);
     const t = new Date(day);
     t.setHours(0, from, 0, 0);
     const err = addBlock({ barberId, start: t.toISOString(), minutes, reason });
@@ -319,14 +345,14 @@ function BlockForm({ onDone, day, initialBarber, canPick }: { onDone: () => void
 
   return (
     <>
-      {canPick && (
+      {choices.length > 1 && (
         <>
           <T size={12} color={colors.muted} style={s.label}>
             Barbeiro
           </T>
           <View style={s.wrap}>
-            {barbers.map((b) => (
-              <Chip key={b.id} label={b.short} active={barberId === b.id} onPress={pick(() => setBarberId(b.id))} />
+            {choices.map((id) => (
+              <Chip key={id} label={choices.length > 2 ? `${barberOf(id).short} · ${unitOf(barberOf(id).unitId).name}` : barberOf(id).short} active={barberId === id} onPress={pick(() => setBarberId(id))} />
             ))}
           </View>
         </>

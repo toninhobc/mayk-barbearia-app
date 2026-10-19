@@ -1,14 +1,18 @@
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Header, Logo, Photo, T } from '@/components/ui';
-import { barbers } from '@/data/mock';
+import { barbers, unitOf } from '@/data/mock';
 import { photos } from '@/data/photos';
+import { UnitSheet } from '@/components/unit-sheet';
 import { useStore } from '@/store';
 import { colors, radius, space } from '@/theme';
 
 export default function Barbeiros() {
-  const { setBarber, favorites } = useStore();
+  const { setBarber, favorites, unitId } = useStore();
+  const unit = unitOf(unitId);
+  const [picking, setPicking] = useState(false);
   const open = (id: string | null) => {
     setBarber(id);
     router.push({ pathname: '/barbeiro/[id]', params: { id: id ?? 'qualquer' } });
@@ -18,6 +22,18 @@ export default function Barbeiros() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header title="Barbeiros" subtitle="Com quem você quer cortar?" />
       <ScrollView contentContainerStyle={{ padding: space.gutter, paddingTop: 8 }}>
+        <Pressable onPress={() => setPicking(true)} hitSlop={6} style={s.unit} accessibilityLabel="Trocar unidade">
+          <Feather name="map-pin" size={14} color={colors.gold} />
+          <T size={13} color={colors.muted} style={{ flex: 1 }}>
+            Unidade{' '}
+            <T v="semibold" size={13}>
+              {unit.name}
+            </T>
+          </T>
+          <T v="semibold" size={13} color={colors.gold}>
+            Trocar
+          </T>
+        </Pressable>
         <Pressable style={s.any} onPress={() => open(null)}>
           <Logo size={52} />
           <View style={{ flex: 1 }}>
@@ -32,7 +48,7 @@ export default function Barbeiros() {
         </Pressable>
 
         <View style={s.grid}>
-          {barbers.map((b) => (
+          {barbers.filter((b) => b.unitId === unitId).map((b) => (
             <Pressable key={b.id} style={s.cell} onPress={() => open(b.id)}>
               <View>
                 <Photo source={photos[b.id]} radius={20} style={{ height: 190 }} />
@@ -55,12 +71,14 @@ export default function Barbeiros() {
           ))}
         </View>
       </ScrollView>
+      <UnitSheet visible={picking} onClose={() => setPicking(false)} />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  any: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)', marginBottom: 20 },
+  unit: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  any: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(190,154,41,0.35)', marginBottom: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 22 },
   cell: { width: '48%' },
   fav: { position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },

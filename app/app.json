@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Mayk Barbearia",
-    "slug": "mayk-barbearia",
+    "name": "Dom Cabral",
+    "slug": "dom-cabral-barbearia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "maykbarbearia",
+    "scheme": "domcabral",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0A0A0A",
+    "backgroundColor": "#15100C",
     "ios": {
       "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#15100C",
         "foregroundImage": "./assets/images/icon.png"
       },
       "predictiveBackGestureEnabled": false
@@ -21,9 +21,9 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/icon.png",
-      "name": "Mayk Barbearia",
-      "themeColor": "#0A0A0A",
-      "backgroundColor": "#0A0A0A"
+      "name": "Dom Cabral Barbearia",
+      "themeColor": "#15100C",
+      "backgroundColor": "#15100C"
     },
     "plugins": [
       "expo-router",
@@ -31,16 +31,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "A Mayk Barbearia usa suas fotos para você escolher a foto do seu perfil.",
-          "cameraPermission": "A Mayk Barbearia usa a câmera para você tirar a foto do seu perfil."
+          "photosPermission": "A Dom Cabral Barbearia usa suas fotos para você escolher a foto do seu perfil.",
+          "cameraPermission": "A Dom Cabral Barbearia usa a câmera para você tirar a foto do seu perfil."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
-          "image": "./assets/images/mayk-logo.jpg",
-          "imageWidth": 160
+          "backgroundColor": "#15100C",
+          "image": "./assets/images/dom-cabral-emblem.png",
+          "imageWidth": 180
         }
       ]
     ],

@@ -50,7 +50,7 @@ export default function Login() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: space.gutter, paddingTop: 24, paddingBottom: bottom + 24 }}>
         <Logo size={56} />
-        <T v="serif" size={32} style={{ marginTop: 24 }}>
+        <T v="display" size={26} style={{ marginTop: 24 }}>
           {step === 'phone' ? 'Bem-vindo de volta' : 'Confirme o código'}
         </T>
 
@@ -110,5 +110,5 @@ export default function Login() {
 }
 
 const s = StyleSheet.create({
-  missing: { gap: 12, padding: 16, marginBottom: 16, borderRadius: radius.md, backgroundColor: 'rgba(200,161,90,0.08)', borderWidth: 1, borderColor: 'rgba(200,161,90,0.35)' },
+  missing: { gap: 12, padding: 16, marginBottom: 16, borderRadius: radius.md, backgroundColor: 'rgba(190,154,41,0.08)', borderWidth: 1, borderColor: 'rgba(190,154,41,0.35)' },
 });

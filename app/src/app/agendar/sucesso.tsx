@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apptTitle, barberOf, timeOf } from '@/components/cards';
 import { GoldButton, Kicker, OutlineButton, T } from '@/components/ui';
+import { unitOf } from '@/data/mock';
 import { brl, dateLong } from '@/lib/format';
 import { useStore } from '@/store';
 import { colors, goldGradient, space } from '@/theme';
@@ -25,7 +26,7 @@ export default function Sucesso() {
         <LinearGradient colors={goldGradient} style={s.check}>
           <Feather name="check" size={44} color={colors.onGold} />
         </LinearGradient>
-        <T v="serif" size={34} style={{ marginTop: 24, textAlign: 'center' }}>
+        <T v="display" size={28} style={{ marginTop: 24, textAlign: 'center' }}>
           {remarcado ? 'Horário remarcado' : 'Horário confirmado'}
         </T>
         <T size={14} color={colors.muted} style={{ marginTop: 8, textAlign: 'center', lineHeight: 21 }}>
@@ -45,9 +46,10 @@ export default function Sucesso() {
             { l: 'Data', v: dateLong(new Date(a.start)) },
             { l: 'Horário', v: timeOf(a.start) },
             { l: 'Barbeiro', v: b.short },
+            { l: 'Unidade', v: unitOf(b.unitId).name },
             {
               l: 'Pagamento',
-              v: a.reward && a.totalCents === 0 ? 'Corte grátis · Clube Mayk' : `${brl(a.totalCents)} · ${methodName[a.method]}${a.reward ? ' · corte grátis aplicado' : ''}`,
+              v: a.reward && a.totalCents === 0 ? 'Corte grátis · Clube Dom Cabral' : `${brl(a.totalCents)} · ${methodName[a.method]}${a.reward ? ' · corte grátis aplicado' : ''}`,
             },
           ].map((x) => (
             <View key={x.l} style={{ width: x.l === 'Data' || x.l === 'Pagamento' ? '100%' : '50%', marginTop: 14 }}>
@@ -59,6 +61,12 @@ export default function Sucesso() {
               </T>
             </View>
           ))}
+        </View>
+        <View style={s.beer}>
+          <Feather name="coffee" size={14} color={colors.gold} />
+          <T size={12} color={colors.goldLight} style={{ flex: 1 }}>
+            Ao chegar, a primeira bebida é por nossa conta.
+          </T>
         </View>
       </View>
 
@@ -73,6 +81,7 @@ export default function Sucesso() {
 
 const s = StyleSheet.create({
   check: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
-  ticket: { marginTop: 32, padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.28)' },
+  ticket: { marginTop: 32, padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(190,154,41,0.28)' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  beer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.line },
 });

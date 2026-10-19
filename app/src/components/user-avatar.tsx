@@ -15,7 +15,7 @@ export function UserAvatar({ size, ring, name }: { size: number; ring?: boolean;
         height: size,
         borderRadius: size / 2,
         overflow: 'hidden',
-        backgroundColor: ring ? colors.surface2 : '#2B2B2B',
+        backgroundColor: ring ? colors.surface2 : '#2A2119',
         borderWidth: 1,
         borderColor: ring ? colors.gold : colors.line,
         alignItems: 'center',

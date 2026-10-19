@@ -2,7 +2,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GoldButton, Kicker, Logo, Photo, T } from '@/components/ui';
+import { GoldButton, Kicker, Photo, T, Wordmark } from '@/components/ui';
+import { shop, units } from '@/data/mock';
 import { photos } from '@/data/photos';
 import { colors, space } from '@/theme';
 
@@ -12,24 +13,26 @@ export default function Welcome() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Photo source={photos.shop} label="Foto da barbearia" style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(10,10,10,0.2)', 'rgba(10,10,10,0.1)', 'rgba(10,10,10,0.92)', colors.bg]}
+        colors={['rgba(21,16,12,0.2)', 'rgba(21,16,12,0.1)', 'rgba(21,16,12,0.92)', colors.bg]}
         locations={[0, 0.35, 0.62, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={{ alignItems: 'center', paddingTop: top + 48 }}>
-        <Logo size={84} />
+      <View style={{ alignItems: 'center', paddingTop: top + 36 }}>
+        <Wordmark width={250} />
       </View>
 
       <View style={[s.content, { paddingBottom: bottom + 32 }]}>
-        <Kicker>Mayk Barbearia · Brasília</Kicker>
-        <T v="serif" size={44} style={{ lineHeight: 48, marginTop: 14 }}>
-          Seu estilo,
+        <Kicker>
+          Desde {shop.since} · {units.length} unidades em Brasília
+        </Kicker>
+        <T v="display" size={36} style={{ lineHeight: 46, marginTop: 14 }}>
+          Porque você
         </T>
-        <T v="serifItalic" size={44} color={colors.goldLight} style={{ lineHeight: 50 }}>
-          no seu tempo.
+        <T v="display" size={36} color={colors.goldLight} style={{ lineHeight: 46 }}>
+          merece o melhor.
         </T>
-        <T size={14} color="#A9A9A9" style={{ lineHeight: 22, marginTop: 16, marginBottom: 30 }}>
-          Agende com seu barbeiro favorito, pague por Pix e acumule pontos a cada visita.
+        <T size={14} color="#C9BBA5" style={{ lineHeight: 22, marginTop: 16, marginBottom: 30 }}>
+          Agende na sua unidade, pague por Pix e acumule pontos a cada visita. E a primeira bebida é por nossa conta.
         </T>
         <GoldButton label="Criar conta" icon="arrow-right" onPress={() => router.push('/cadastro')} />
         <Pressable onPress={() => router.push('/login')} style={({ pressed }) => [s.secondary, pressed && { opacity: 0.7 }]}>
@@ -42,7 +45,7 @@ export default function Welcome() {
         </Pressable>
         <Pressable onPress={() => router.push('/equipe')} hitSlop={8} style={({ pressed }) => [s.staff, pressed && { opacity: 0.7 }]}>
           <T size={12} color={colors.muted}>
-            Sou da equipe Mayk · <T v="semibold" size={12} color={colors.gold}>Acessar painel</T>
+            Sou da equipe Dom Cabral · <T v="semibold" size={12} color={colors.gold}>Acessar painel</T>
           </T>
         </Pressable>
       </View>

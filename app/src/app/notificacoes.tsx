@@ -34,7 +34,7 @@ function NoticeRow({ n }: { n: Notice }) {
             {timeAgo(n.at)}
           </T>
         </View>
-        <T size={13} color={n.read ? colors.muted : '#CFCFCF'} style={{ marginTop: 4, lineHeight: 19 }}>
+        <T size={13} color={n.read ? colors.muted : '#E6DAC3'} style={{ marginTop: 4, lineHeight: 19 }}>
           {n.body}
         </T>
       </View>
@@ -135,7 +135,7 @@ export default function Notificacoes() {
         {!notifications && (
           <Pressable onPress={toggleNotifications} style={s.off}>
             <Feather name="bell-off" size={18} color={colors.gold} />
-            <T size={13} color="#D2D2D2" style={{ flex: 1, lineHeight: 19 }}>
+            <T size={13} color="#E6DAC3" style={{ flex: 1, lineHeight: 19 }}>
               Os lembretes estão desativados. Toque para ativar.
             </T>
           </Pressable>
@@ -205,7 +205,7 @@ export default function Notificacoes() {
 const s = StyleSheet.create({
   group: { letterSpacing: 1.6, marginTop: 14, marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: 16, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-  unread: { borderColor: 'rgba(200,161,90,0.35)', backgroundColor: '#17140F' },
+  unread: { borderColor: 'rgba(190,154,41,0.35)', backgroundColor: '#2A2112' },
   icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.goldDark, alignItems: 'center', justifyContent: 'center' },
   trash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 22, borderRadius: radius.md, backgroundColor: colors.danger },
   toast: { position: 'absolute', left: space.gutter, right: space.gutter, bottom: 30, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 15, borderRadius: radius.md, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.line },

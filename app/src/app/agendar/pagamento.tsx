@@ -7,6 +7,7 @@ import Svg, { Rect } from 'react-native-svg';
 import { CardForm, cardBrand, cardError, emptyCard, type CardInput } from '@/components/card-form';
 import { barberOf } from '@/components/cards';
 import { Footer, GoldButton, Header, Kicker, T, type IconName } from '@/components/ui';
+import { unitOf } from '@/data/mock';
 import { brl, dateLong, hhmm } from '@/lib/format';
 import { draftTotals, priceOf, rewardEligible, useStore, withCoupon, type PayMethod } from '@/store';
 import { colors, fonts, radius, space } from '@/theme';
@@ -140,8 +141,9 @@ export default function Pagamento() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [secs, setSecs] = useState(600);
+  const unitId = useStore((st) => st.unitId);
   const barber = draft.barberId ? barberOf(draft.barberId) : null;
-  const pixCode = '00020126580014BR.GOV.BCB.PIX0136mayk-barbearia-demo5204000053039865802BR';
+  const pixCode = '00020126580014BR.GOV.BCB.PIX0136domcabral-barbearia-demo5204000053039865802BR';
 
   useEffect(() => {
     const t = setInterval(() => setSecs((x) => Math.max(0, x - 1)), 1000);
@@ -177,15 +179,15 @@ export default function Pagamento() {
             {dateLong(day)}
           </T>
           <T size={13} color={colors.muted} style={{ marginTop: 4 }}>
-            {hhmm(draft.slot)} – {hhmm(draft.slot + totals.minutes)} · {barber ? `com ${barber.short}` : 'Primeiro barbeiro livre'}
+            {hhmm(draft.slot)} – {hhmm(draft.slot + totals.minutes)} · {barber ? `com ${barber.short}` : 'Primeiro barbeiro livre'} · {unitOf(unitId).name}
           </T>
           <View style={s.divider} />
           {totals.list.map((sv) => (
             <View key={sv.id} style={s.line}>
-              <T size={14} color="#D2D2D2">
+              <T size={14} color="#E6DAC3">
                 {sv.name}
               </T>
-              <T size={14} color="#D2D2D2">
+              <T size={14} color="#E6DAC3">
                 {brl(sv.priceCents)}
               </T>
             </View>
@@ -193,7 +195,7 @@ export default function Pagamento() {
           {price.reward > 0 && (
             <View style={s.line}>
               <T size={14} color={colors.success}>
-                Corte grátis (Clube Mayk)
+                Corte grátis (Clube Dom Cabral)
               </T>
               <T size={14} color={colors.success}>
                 −{brl(price.reward)}
@@ -237,7 +239,7 @@ export default function Pagamento() {
                 Usar meu corte grátis
               </T>
               <T size={12} color={colors.muted} style={{ marginTop: 2 }}>
-                Clube Mayk · você tem {rewards} disponível{rewards > 1 ? 'is' : ''}
+                Clube Dom Cabral · você tem {rewards} disponível{rewards > 1 ? 'is' : ''}
               </T>
             </View>
             <View style={[s.check, draft.useReward && s.checkOn]}>{draft.useReward && <Feather name="check" size={14} color={colors.onGold} />}</View>
@@ -356,11 +358,11 @@ export default function Pagamento() {
 }
 
 const s = StyleSheet.create({
-  summary: { padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(200,161,90,0.28)' },
+  summary: { padding: 20, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(190,154,41,0.28)' },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 16 },
   line: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   method: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, marginBottom: 10 },
-  methodOn: { borderColor: colors.gold, backgroundColor: '#17140F' },
+  methodOn: { borderColor: colors.gold, backgroundColor: '#2A2112' },
   mIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.goldDark, alignItems: 'center', justifyContent: 'center' },
   tag: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.dim, alignItems: 'center', justifyContent: 'center' },
@@ -372,7 +374,7 @@ const s = StyleSheet.create({
   couponOn: { borderColor: 'rgba(95,191,138,0.45)', backgroundColor: 'rgba(95,191,138,0.06)' },
   couponInput: { flex: 1, height: '100%', color: colors.text, fontFamily: fonts.semibold, fontSize: 15, letterSpacing: 1 },
   reward: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginTop: 20, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-  rewardOn: { borderColor: colors.gold, backgroundColor: '#17140F' },
+  rewardOn: { borderColor: colors.gold, backgroundColor: '#2A2112' },
   check: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.dim, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: colors.gold, borderColor: colors.gold },
   freeNote: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(95,191,138,0.45)', backgroundColor: 'rgba(95,191,138,0.06)' },
